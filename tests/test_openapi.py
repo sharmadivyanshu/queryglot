@@ -6,6 +6,11 @@ import json
 import pytest
 
 from queryglot.backends.openapi import OpenAPIBackend
+from queryglot.catalog import Catalog
+from queryglot.graph import build_graph
+from queryglot.prompts import FEWSHOT
+from queryglot.retrieve import SchemaRetriever
+from tests.conftest import ScriptedLLM
 
 SPEC = {
     "paths": {
@@ -209,3 +214,46 @@ def test_headers_are_sent_on_execute():
     b.introspect()
     b.execute(call("getInventory"))
     assert seen["api_key"] == "k1"
+
+
+def test_fewshot_examples_exist_and_are_valid_calls():
+    for line in FEWSHOT["openapi"].splitlines():
+        if line.startswith("A: "):
+            parsed = json.loads(line[3:])
+            assert "operationId" in parsed and "parameters" in parsed
+
+
+def test_graph_compiles_validates_and_executes_openapi_call():
+    backend = OpenAPIBackend("http://api.example/v3", transport=SpecTransport(data='[{"id": 7}]'))
+    catalog = Catalog()
+    catalog.add(*backend.introspect())
+    llm = ScriptedLLM(call("findPetsByStatus", status="available"))
+    graph = build_graph(backend, SchemaRetriever(catalog), llm)
+    final = graph.invoke({"question": "which pets are available by status?"})
+    assert final["outcome"] == "answered"
+    assert final["result"] == [{"id": 7}]
+
+
+def test_graph_repairs_after_spec_violation():
+    backend = OpenAPIBackend("http://api.example/v3", transport=SpecTransport())
+    catalog = Catalog()
+    catalog.add(*backend.introspect())
+    llm = ScriptedLLM(
+        call("findPetsByStatus", status="happy"),
+        call("findPetsByStatus", status="available"),
+    )
+    graph = build_graph(backend, SchemaRetriever(catalog), llm)
+    final = graph.invoke({"question": "which pets are available by status?"})
+    assert final["outcome"] == "answered"
+    assert "happy" in llm.calls[1]  # the invalid value, present only via the parser error
+
+
+def test_mutating_request_abstains_because_operation_is_absent():
+    backend = OpenAPIBackend("http://api.example/v3", transport=SpecTransport())
+    catalog = Catalog()
+    catalog.add(*backend.introspect())
+    llm = ScriptedLLM("SHOULD_NEVER_RUN")
+    graph = build_graph(backend, SchemaRetriever(catalog), llm)
+    final = graph.invoke({"question": "remove every animal from storage"})
+    assert final["outcome"] == "abstained"
+    assert llm.calls == []

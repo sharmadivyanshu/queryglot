@@ -33,6 +33,12 @@ FEWSHOT = {
         "Q: how many requests per service?\n"
         'A: {"size": 0, "aggs": {"per_service": {"terms": {"field": "service"}}}}\n'
     ),
+    "openapi": (
+        "Q: how many pets are in the store inventory?\n"
+        'A: {"operationId": "getInventory", "parameters": {}}\n'
+        "Q: which pets are currently available?\n"
+        'A: {"operationId": "findPetsByStatus", "parameters": {"status": "available"}}\n'
+    ),
 }
 
 
