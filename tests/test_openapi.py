@@ -112,3 +112,48 @@ def test_spec_without_paths_raises_connection_error():
 
     with pytest.raises(ConnectionError):
         OpenAPIBackend("http://api.example/v3", transport=empty).introspect()
+
+
+def call(op_id, **params):
+    return json.dumps({"operationId": op_id, "parameters": params})
+
+
+def test_valid_call_passes(backend):
+    assert backend.validate(call("findPetsByStatus", status="available")).ok
+    assert backend.validate(call("getInventory")).ok
+
+
+def test_not_json_fails(backend):
+    verdict = backend.validate("GET /pet/findByStatus")
+    assert not verdict.ok and "JSON" in verdict.error
+
+
+def test_unknown_operation_fails_with_catalog_message(backend):
+    verdict = backend.validate(call("deletePet"))
+    assert not verdict.ok
+    assert "deletePet" in verdict.error and "catalog" in verdict.error
+
+
+def test_missing_required_parameter_fails(backend):
+    verdict = backend.validate(call("findPetsByStatus"))
+    assert not verdict.ok and "status" in verdict.error and "required" in verdict.error
+
+
+def test_unknown_parameter_fails(backend):
+    verdict = backend.validate(call("getInventory", limit=5))
+    assert not verdict.ok and "limit" in verdict.error
+
+
+def test_wrong_type_fails(backend):
+    verdict = backend.validate(call("getPetById", petId="five"))
+    assert not verdict.ok and "petId" in verdict.error and "integer" in verdict.error
+
+
+def test_enum_violation_fails(backend):
+    verdict = backend.validate(call("findPetsByStatus", status="happy"))
+    assert not verdict.ok and "available" in verdict.error
+
+
+def test_bool_is_not_an_integer(backend):
+    verdict = backend.validate(call("getPetById", petId=True))
+    assert not verdict.ok

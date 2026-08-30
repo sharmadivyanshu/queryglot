@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 
 from ..catalog import SchemaItem
+from . import Validation
 from .http import Transport, urllib_transport
 
 
@@ -83,3 +84,69 @@ class OpenAPIBackend:
             )
             self._ops[op_id] = {"path": path, "parameters": params}
         return items
+
+    _TYPE_CHECKS = {
+        "string": lambda v: isinstance(v, str),
+        "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+        "number": lambda v: isinstance(v, int | float) and not isinstance(v, bool),
+        "boolean": lambda v: isinstance(v, bool),
+        "array": lambda v: isinstance(v, list),
+    }
+
+    def _parse(self, query: str) -> tuple[dict | None, str]:
+        try:
+            body = json.loads(query)
+        except json.JSONDecodeError as exc:
+            return None, f"not valid JSON: {exc}"
+        if not isinstance(body, dict) or not isinstance(body.get("operationId"), str):
+            return None, 'call must be a JSON object with a string "operationId"'
+        if not isinstance(body.get("parameters", {}), dict):
+            return None, '"parameters" must be a JSON object'
+        return body, ""
+
+    def validate(self, query: str) -> Validation:
+        body, error = self._parse(query)
+        if body is None:
+            return Validation(ok=False, error=error)
+        op_id = body["operationId"]
+        operation = self._ops.get(op_id)
+        if operation is None:
+            return Validation(
+                ok=False,
+                error=(
+                    f"unknown operation {op_id!r} — not in this server's catalog; "
+                    "use only operations from the schema provided"
+                ),
+            )
+        supplied = body.get("parameters", {})
+        spec_params = {p["name"]: p for p in operation["parameters"]}
+        missing = sorted(
+            name for name, p in spec_params.items() if p.get("required") and name not in supplied
+        )
+        if missing:
+            return Validation(
+                ok=False, error=f"missing required parameter(s) {missing} for {op_id}"
+            )
+        for name, value in supplied.items():
+            spec_param = spec_params.get(name)
+            if spec_param is None:
+                return Validation(
+                    ok=False,
+                    error=f"unknown parameter {name!r} for {op_id}; known: {sorted(spec_params)}",
+                )
+            schema = spec_param.get("schema", {})
+            check = self._TYPE_CHECKS.get(schema.get("type", ""))
+            if check and not check(value):
+                return Validation(
+                    ok=False,
+                    error=(
+                        f"parameter {name!r} must be of type {schema['type']}, "
+                        f"got {type(value).__name__}"
+                    ),
+                )
+            if "enum" in schema and value not in schema["enum"]:
+                return Validation(
+                    ok=False,
+                    error=f"parameter {name!r} must be one of {schema['enum']}, got {value!r}",
+                )
+        return Validation(ok=True)
