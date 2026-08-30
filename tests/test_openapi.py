@@ -1,0 +1,114 @@
+"""OpenAPI backend: introspection filters to GET, validation is the spec's
+own contract, execution binds path templates. All through a fake Transport."""
+
+import json
+
+import pytest
+
+from queryglot.backends.openapi import OpenAPIBackend
+
+SPEC = {
+    "paths": {
+        "/pet/findByStatus": {
+            "get": {
+                "operationId": "findPetsByStatus",
+                "summary": "Finds pets by status",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": True,
+                        "schema": {"type": "string", "enum": ["available", "pending", "sold"]},
+                    }
+                ],
+            }
+        },
+        "/pet/{petId}": {
+            "get": {
+                "operationId": "getPetById",
+                "summary": "Find pet by ID",
+                "parameters": [
+                    {
+                        "name": "petId",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "integer"},
+                    }
+                ],
+            },
+            "delete": {"operationId": "deletePet", "summary": "Deletes a pet"},
+        },
+        "/store/inventory": {
+            "get": {"operationId": "getInventory", "summary": "Pet inventories by status"}
+        },
+        "/pet": {"post": {"operationId": "addPet", "summary": "Add a new pet"}},
+        "/user/login": {
+            "get": {
+                "summary": "Logs user into the system",
+                "parameters": [{"name": "username", "in": "query", "schema": {"type": "string"}}],
+            }
+        },
+    }
+}
+
+
+class SpecTransport:
+    """Serves SPEC at /openapi.json; records every other GET, returns canned data."""
+
+    def __init__(self, data='{"ok": true}', status=200):
+        self.data, self.status = data, status
+        self.requests: list[str] = []
+
+    def __call__(self, method, url, body, headers):
+        assert method == "GET"
+        if url.endswith("/openapi.json"):
+            return 200, json.dumps(SPEC)
+        self.requests.append(url)
+        return self.status, self.data
+
+
+@pytest.fixture
+def backend():
+    b = OpenAPIBackend("http://api.example/v3", transport=SpecTransport())
+    b.introspect()
+    return b
+
+
+def test_introspects_only_get_operations():
+    b = OpenAPIBackend("http://api.example/v3", transport=SpecTransport())
+    items = b.introspect()
+    names = {i.name for i in items}
+    assert names == {"findPetsByStatus", "getPetById", "getInventory", "get_user_login"}
+    assert "deletePet" not in names and "addPet" not in names  # absent, not guarded
+
+
+def test_schema_item_shape():
+    b = OpenAPIBackend("http://api.example/v3", transport=SpecTransport())
+    by_name = {i.name: i for i in b.introspect()}
+    item = by_name["findPetsByStatus"]
+    assert item.backend == "openapi" and item.kind == "operation" and item.type == "GET"
+    assert item.labels == ("status",)
+    assert item.parent == "/pet/findByStatus"
+    assert "status" in item.help.lower()
+
+
+def test_missing_operation_id_gets_path_slug():
+    b = OpenAPIBackend("http://api.example/v3", transport=SpecTransport())
+    names = {i.name for i in b.introspect()}
+    assert "get_user_login" in names
+
+
+def test_unreachable_spec_raises_connection_error():
+    def down(method, url, body, headers):
+        return 503, "unavailable"
+
+    with pytest.raises(ConnectionError):
+        OpenAPIBackend("http://api.example/v3", transport=down).introspect()
+
+
+def test_spec_without_paths_raises_connection_error():
+    def empty(method, url, body, headers):
+        return 200, "{}"
+
+    with pytest.raises(ConnectionError):
+        OpenAPIBackend("http://api.example/v3", transport=empty).introspect()
