@@ -157,3 +157,55 @@ def test_enum_violation_fails(backend):
 def test_bool_is_not_an_integer(backend):
     verdict = backend.validate(call("getPetById", petId=True))
     assert not verdict.ok
+
+
+def test_execute_binds_path_and_query_params():
+    transport = SpecTransport(data='[{"id": 1}]')
+    b = OpenAPIBackend("http://api.example/v3", transport=transport)
+    b.introspect()
+    run = b.execute(call("getPetById", petId=5))
+    assert run.ok and run.data == [{"id": 1}]
+    assert transport.requests == ["http://api.example/v3/pet/5"]
+
+    run = b.execute(call("findPetsByStatus", status="available"))
+    assert run.ok
+    assert transport.requests[-1] == "http://api.example/v3/pet/findByStatus?status=available"
+
+
+def test_execute_url_encodes_path_params():
+    transport = SpecTransport()
+    b = OpenAPIBackend("http://api.example/v3", transport=transport)
+    b.introspect()
+    b.execute(call("getPetById", petId="a/b"))
+    assert transport.requests == ["http://api.example/v3/pet/a%2Fb"]
+
+
+def test_server_4xx_becomes_repair_fuel():
+    b = OpenAPIBackend(
+        "http://api.example/v3", transport=SpecTransport(data="Pet not found", status=404)
+    )
+    b.introspect()
+    run = b.execute(call("getPetById", petId=99999))
+    assert not run.ok and "404" in run.error and "Pet not found" in run.error
+
+
+def test_non_json_2xx_body_is_returned_raw():
+    b = OpenAPIBackend("http://api.example/v3", transport=SpecTransport(data="pong"))
+    b.introspect()
+    run = b.execute(call("getInventory"))
+    assert run.ok and run.data == "pong"
+
+
+def test_headers_are_sent_on_execute():
+    seen = {}
+
+    def spy(method, url, body, headers):
+        if url.endswith("/openapi.json"):
+            return 200, json.dumps(SPEC)
+        seen.update(headers)
+        return 200, "{}"
+
+    b = OpenAPIBackend("http://api.example/v3", transport=spy, headers={"api_key": "k1"})
+    b.introspect()
+    b.execute(call("getInventory"))
+    assert seen["api_key"] == "k1"

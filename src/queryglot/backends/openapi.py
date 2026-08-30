@@ -17,9 +17,10 @@ the model never writes a URL.
 from __future__ import annotations
 
 import json
+import urllib.parse
 
 from ..catalog import SchemaItem
-from . import Validation
+from . import Execution, Validation
 from .http import Transport, urllib_transport
 
 
@@ -150,3 +151,29 @@ class OpenAPIBackend:
                     error=f"parameter {name!r} must be one of {schema['enum']}, got {value!r}",
                 )
         return Validation(ok=True)
+
+    def execute(self, query: str) -> Execution:
+        body, error = self._parse(query)
+        if body is None:
+            return Execution(ok=False, error=error)
+        operation = self._ops.get(body["operationId"])
+        if operation is None:
+            return Execution(ok=False, error=f"unknown operation {body['operationId']!r}")
+        path = operation["path"]
+        spec_params = {p["name"]: p for p in operation["parameters"]}
+        query_params: dict[str, object] = {}
+        for name, value in body.get("parameters", {}).items():
+            if spec_params.get(name, {}).get("in") == "path":
+                path = path.replace("{" + name + "}", urllib.parse.quote(str(value), safe=""))
+            else:
+                query_params[name] = value
+        url = f"{self.base_url}{path}"
+        if query_params:
+            url += "?" + urllib.parse.urlencode(query_params)
+        status, text = self._get(url)
+        if status >= 400:
+            return Execution(ok=False, error=f"HTTP {status}: {text[:400]}")
+        try:
+            return Execution(ok=True, data=json.loads(text))
+        except ValueError:
+            return Execution(ok=True, data=text)
