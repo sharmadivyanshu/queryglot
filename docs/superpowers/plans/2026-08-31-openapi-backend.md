@@ -552,12 +552,6 @@ from queryglot.retrieve import SchemaRetriever
 from tests.conftest import ScriptedLLM
 
 
-def graph_for(backend):
-    catalog = Catalog()
-    catalog.add(*backend.introspect())
-    return build_graph(backend, SchemaRetriever(catalog), ScriptedLLM(""), None), catalog
-
-
 def test_fewshot_examples_exist_and_are_valid_calls():
     for line in FEWSHOT["openapi"].splitlines():
         if line.startswith("A: "):
@@ -679,7 +673,7 @@ after the elastic backend block:
 
 ```python
     if args.openapi:
-        backends.append(OpenAPIBackend(args.openapi, headers=_openapi_headers()))
+        backends.append(OpenAPIBackend(args.openapi, headers=headers_from_env()))
 ```
 module-level helper (both cli.py and mcp_server.py need it; put it in
 `src/queryglot/backends/openapi.py` as a function and import it):
