@@ -31,7 +31,7 @@ def main() -> int:
     if args.openapi:
         backends.append(OpenAPIBackend(args.openapi, headers=headers_from_env()))
     if not backends:
-        parser.error("configure at least one backend (--prometheus / --elastic)")
+        parser.error("configure at least one backend (--prometheus / --elastic / --openapi)")
 
     engine = Engine(backends)
     counts = engine.refresh_schema()

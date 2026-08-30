@@ -36,7 +36,7 @@ jobs:
         run: poetry run mypy src/queryglot --ignore-missing-imports
       - name: Wait for Prometheus to self-scrape
         run: sleep 20
-      - name: Tests (including live-Prometheus integration)
+      - name: Tests (including live-Prometheus and live-petstore integration)
         env:
           QUERYGLOT_TEST_PROM: http://localhost:9090
           QUERYGLOT_TEST_PETSTORE: http://localhost:8081/api/v3

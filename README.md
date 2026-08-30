@@ -1,8 +1,8 @@
 # queryglot
 
 **One question, many query languages.** Schema-aware natural-language search
-over your observability stack — Prometheus, Elasticsearch — shipped as an MCP
-server any agent can plug into.
+over your observability stack — Prometheus, Elasticsearch — and any
+OpenAPI-described API, shipped as an MCP server any agent can plug into.
 
 > "p95 latency by route" is easy. Knowing YOUR latency metric is called
 > `http_server_request_duration_seconds` and carries a `route` label — that's
@@ -69,7 +69,7 @@ LoRA behind `mlx_lm.server` — that last one is the point of `finetune/`.
 outcome must match, required metrics must appear in the query, and the query
 must actually execute. Abstention cases score correct only on refusal.
 `eval/docker-compose.yml` brings up real backends; CI runs the full
-integration suite against a real Prometheus on every push.
+integration suite against a real Prometheus and petstore on every push.
 
 ## Status
 
@@ -78,7 +78,8 @@ integration suite against a real Prometheus on every push.
 - [x] Prometheus + Elasticsearch backends (introspect / validate / execute)
 - [x] BM25 + synonym schema retrieval, exact-name boosting
 - [x] compile -> validate -> repair -> execute LangGraph with abstention
-- [x] MCP server + CLI; 56 tests incl. live-Prometheus integration; CI
+- [x] MCP server + CLI; 89 tests incl. live-Prometheus and live-petstore
+      integration; CI
 - [x] Verified NL->PromQL dataset generator (parse+execute gated, metric-disjoint splits)
 - [x] Bake-off complete — RAG 8/10, FT-only 3/10, FT+RAG 9/10 on the same
       golden set; full analysis in `finetune/README.md`, build history and
@@ -93,12 +94,12 @@ The `Backend` protocol (introspect / validate / execute) is not
 observability-specific. The same loop pointed at a product's own OpenAPI spec
 or database turns any app into something an AI can query *safely*:
 
-- **OpenAPI backend** — introspect the spec into the catalog; questions
-  compile into validated API calls. Existing OpenAPI->MCP generators dump
-  every endpoint as a tool, which measurably degrades agents (arXiv
-  2411.15399) and executes whatever the model asks. queryglot's contribution
-  is the missing layer: schema-grounded retrieval, server-side validation,
-  and abstention.
+- **OpenAPI backend — shipped.** Introspects a product's own spec into the
+  catalog; questions compile into validated, GET-only API calls. Existing
+  OpenAPI->MCP generators dump every endpoint as a tool, which measurably
+  degrades agents (arXiv 2411.15399) and executes whatever the model asks.
+  queryglot's contribution is the missing layer: schema-grounded retrieval,
+  server-side validation, and abstention.
 - **Customer-facing ask widget** — an embeddable search box backed by the
   same engine: visitors' questions become validated queries against the
   app's data, never hallucinated ones.
@@ -115,6 +116,9 @@ or database turns any app into something an AI can query *safely*:
 - Backend auto-routing is retrieval-strength-based; ambiguous questions
   ("errors in checkout") can route to the wrong store. Pass `backend=` to pin.
 - Synonym table is small and English-only, grown from eval failures.
+- When a backend's catalog is smaller than the retrieval k (8), retrieval
+  sends the whole catalog and the abstention gate rarely fires — abstention
+  then rests on the validation layer.
 
 ## License
 

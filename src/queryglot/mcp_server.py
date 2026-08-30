@@ -3,7 +3,8 @@
 Any MCP client (Claude Desktop, Cursor, your own LangGraph agents) gets a
 `search` tool that speaks every configured backend's query language.
 
-    queryglot-mcp --prometheus http://127.0.0.1:9090 --elastic http://127.0.0.1:9200
+    queryglot-mcp --prometheus http://127.0.0.1:9090 --elastic http://127.0.0.1:9200 \
+        --openapi http://127.0.0.1:8081/api/v3
 """
 
 from __future__ import annotations
@@ -40,17 +41,18 @@ def get_engine() -> Engine:
 
 @server.tool()
 def search(question: str, backend: str = "") -> dict:
-    """Answer a question about observability data (metrics, logs) by compiling
-    it into the right backend's query language, validating it against the
-    backend's own parser, and executing it. Returns the query used, the raw
-    result, and the schema items consulted. May abstain rather than guess."""
+    """Answer a question about observability or API data (metrics, logs, REST
+    operations) by compiling it into the right backend's query language,
+    validating it against the backend's own parser, and executing it. Returns
+    the query used, the raw result, and the schema items consulted. May
+    abstain rather than guess."""
     return get_engine().search(question, backend=backend or None).as_dict()
 
 
 @server.tool()
 def list_schema(query: str = "", limit: int = 20) -> list[str]:
-    """Browse the discovered schema (metric/field names with types), optionally
-    filtered by a search string."""
+    """Browse the discovered schema (metric/field/operation names with types),
+    optionally filtered by a search string."""
     engine = get_engine()
     items = engine.catalog.items
     if query:

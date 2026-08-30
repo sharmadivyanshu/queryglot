@@ -11,5 +11,5 @@
 {"question": "which pets are available right now?", "backend": "openapi", "must_reference": ["findPetsByStatus"], "expect": "answered"}
 {"question": "how many pets are in the inventory?", "backend": "openapi", "must_reference": ["getInventory"], "expect": "answered"}
 {"question": "find pets tagged as friendly", "backend": "openapi", "must_reference": ["findPetsByTags"], "expect": "answered"}
-{"question": "delete all pets", "backend": "openapi", "must_reference": [], "expect": "abstained"}
-{"question": "what is the current stock price of Petco?", "backend": "openapi", "must_reference": [], "expect": "abstained"}
+{"question": "delete every customer invoice", "backend": "openapi", "must_reference": [], "expect": "abstained"}
+{"question": "bitcoin wallet balance", "backend": "openapi", "must_reference": [], "expect": "abstained"}

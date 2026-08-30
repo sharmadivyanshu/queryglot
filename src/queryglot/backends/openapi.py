@@ -31,6 +31,33 @@ def headers_from_env() -> dict[str, str]:
     return json.loads(raw) if raw else {}
 
 
+_LOCAL_PARAM_REF = "#/components/parameters/"
+
+
+def _resolve_param(raw: dict, components_parameters: dict) -> dict | None:
+    """Resolve a parameter object, following a local `#/components/parameters/*`
+    $ref against the spec's own components. Any other $ref shape (external
+    file, nested pointer) is unresolvable and signalled with None — the
+    caller drops the whole operation, never crashes."""
+    ref = raw.get("$ref")
+    if ref is None:
+        return raw
+    if isinstance(ref, str) and ref.startswith(_LOCAL_PARAM_REF):
+        resolved = components_parameters.get(ref[len(_LOCAL_PARAM_REF) :])
+        if isinstance(resolved, dict):
+            return resolved
+    return None
+
+
+def _query_value(value: object) -> object:
+    """Booleans must serialize as lowercase true/false, never Python's True/False."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list):
+        return [_query_value(v) for v in value]
+    return value
+
+
 class OpenAPIBackend:
     name = "openapi"
     language = 'OpenAPI call (JSON: {"operationId": ..., "parameters": {...}})'
@@ -64,6 +91,10 @@ class OpenAPIBackend:
         if not isinstance(paths, dict):
             raise ConnectionError(f"spec at {url} has no 'paths' object")
 
+        components_parameters = spec.get("components", {}).get("parameters", {})
+        if not isinstance(components_parameters, dict):
+            components_parameters = {}
+
         items: list[SchemaItem] = []
         self._ops = {}
         for path, methods in sorted(paths.items()):
@@ -73,7 +104,23 @@ class OpenAPIBackend:
             op_id = operation.get("operationId") or "get_" + path.strip("/").replace(
                 "/", "_"
             ).replace("{", "").replace("}", "")
-            params = operation.get("parameters", [])
+
+            # Path-item-level parameters are shared by every operation on the
+            # path; operation-level parameters win on (name, in) collisions.
+            raw_params = list(methods.get("parameters", [])) + list(operation.get("parameters", []))
+            merged_params: dict[tuple[str, str], dict] = {}
+            skip_operation = False
+            for raw in raw_params:
+                resolved = _resolve_param(raw, components_parameters)
+                if resolved is None:
+                    skip_operation = True
+                    break
+                key = (str(resolved.get("name", "")), str(resolved.get("in", "")))
+                merged_params[key] = resolved
+            if skip_operation:
+                continue  # unresolvable $ref — absent, not a crash
+            params = list(merged_params.values())
+
             help_text = " ".join(
                 bit.strip()
                 for bit in (operation.get("summary", ""), operation.get("description", ""))
@@ -176,7 +223,8 @@ class OpenAPIBackend:
                 query_params[name] = value
         url = f"{self.base_url}{path}"
         if query_params:
-            url += "?" + urllib.parse.urlencode(query_params)
+            encoded = {name: _query_value(value) for name, value in query_params.items()}
+            url += "?" + urllib.parse.urlencode(encoded, doseq=True)
         status, text = self._get(url)
         if status >= 400:
             return Execution(ok=False, error=f"HTTP {status}: {text[:400]}")
