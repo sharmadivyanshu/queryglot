@@ -29,7 +29,7 @@ import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
 
-from queryglot import Engine, OpenAICompatibleLLM, PrometheusBackend  # noqa: E402
+from queryglot import Engine, OpenAICompatibleLLM, OpenAPIBackend, PrometheusBackend  # noqa: E402
 
 
 def satisfied(query: str, must_reference: list) -> bool:
@@ -64,9 +64,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    prom = os.getenv("QUERYGLOT_TEST_PROM", "http://127.0.0.1:9090")
+    backends = [PrometheusBackend(os.getenv("QUERYGLOT_TEST_PROM", "http://127.0.0.1:9090"))]
+    if petstore := os.getenv("QUERYGLOT_TEST_PETSTORE"):
+        backends.append(OpenAPIBackend(petstore))
     llm = OpenAICompatibleLLM()
-    engine = Engine([PrometheusBackend(prom)], llm=llm, use_retrieval=not args.no_retrieval)
+    engine = Engine(backends, llm=llm, use_retrieval=not args.no_retrieval)
     engine.refresh_schema()
 
     print(f"retrieval  : {'OFF (arm 2 mode)' if args.no_retrieval else 'on'}")
@@ -80,8 +82,14 @@ def main() -> int:
         if line.strip()
     ]
 
+    configured = set(engine.backends)
+    runnable = [c for c in golden if c["backend"] in configured]
+    skipped = len(golden) - len(runnable)
+    if skipped:
+        print(f"skipping {skipped} case(s) for unconfigured backends\n")
+
     correct = 0
-    for case in golden:
+    for case in runnable:
         answer = engine.search(case["question"], backend=case["backend"])
         ok = answer.outcome == case["expect"] and satisfied(answer.query, case["must_reference"])
         correct += ok
@@ -89,8 +97,8 @@ def main() -> int:
         print(f"[{mark}] {case['question']}")
         print(f"       -> {answer.outcome}: {answer.query or answer.reason}")
 
-    print(f"\n{correct}/{len(golden)} correct")
-    return 0 if correct == len(golden) else 1
+    print(f"\n{correct}/{len(runnable)} correct")
+    return 0 if correct == len(runnable) else 1
 
 
 if __name__ == "__main__":

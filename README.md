@@ -42,6 +42,7 @@ question ──> retrieve            ──> compile        ──> validate    
       "env": {
         "QUERYGLOT_PROMETHEUS": "http://localhost:9090",
         "QUERYGLOT_ELASTIC": "http://localhost:9200",
+        "QUERYGLOT_OPENAPI": "http://localhost:8081/api/v3",
         "QUERYGLOT_LLM_URL": "http://localhost:11434/v1",
         "QUERYGLOT_LLM_MODEL": "qwen3.5:4b"
       }
@@ -82,6 +83,8 @@ integration suite against a real Prometheus on every push.
 - [x] Bake-off complete — RAG 8/10, FT-only 3/10, FT+RAG 9/10 on the same
       golden set; full analysis in `finetune/README.md`, build history and
       bugs in `DESIGN_NOTES.md`
+- [x] OpenAPI backend — read-only, GET-only by construction; validated
+      against the spec's own contract; petstore-verified in CI
 - [ ] Loki (LogQL) backend; Datadog connector
 
 ## Where this is going: apps that agents can actually use

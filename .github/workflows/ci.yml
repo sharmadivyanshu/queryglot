@@ -17,6 +17,9 @@ jobs:
       prometheus:
         image: prom/prometheus:v3.9.1
         ports: ["9090:9090"]
+      petstore:
+        image: swaggerapi/petstore3:unstable
+        ports: ["8081:8080"]
 
     steps:
       - uses: actions/checkout@v4
@@ -36,4 +39,5 @@ jobs:
       - name: Tests (including live-Prometheus integration)
         env:
           QUERYGLOT_TEST_PROM: http://localhost:9090
+          QUERYGLOT_TEST_PETSTORE: http://localhost:8081/api/v3
         run: poetry run pytest -q

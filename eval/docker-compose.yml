@@ -14,3 +14,8 @@ services:
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports: ["9200:9200"]
+
+  petstore:
+    image: swaggerapi/petstore3:unstable
+    ports: ["8081:8080"]
+    # Serves its own spec at /api/v3/openapi.json — introspection stays live.
