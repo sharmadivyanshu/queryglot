@@ -8,6 +8,7 @@ import os
 
 from .backends import Backend
 from .backends.elastic import ElasticBackend
+from .backends.openapi import OpenAPIBackend, headers_from_env
 from .backends.prometheus import PrometheusBackend
 from .engine import Engine
 
@@ -15,9 +16,10 @@ from .engine import Engine
 def main() -> int:
     parser = argparse.ArgumentParser(prog="queryglot", description=__doc__)
     parser.add_argument("question")
-    parser.add_argument("--backend", default=None, help="prometheus | elasticsearch")
+    parser.add_argument("--backend", default=None, help="prometheus | elasticsearch | openapi")
     parser.add_argument("--prometheus", default=os.getenv("QUERYGLOT_PROMETHEUS"))
     parser.add_argument("--elastic", default=os.getenv("QUERYGLOT_ELASTIC"))
+    parser.add_argument("--openapi", default=os.getenv("QUERYGLOT_OPENAPI"))
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args()
 
@@ -26,6 +28,8 @@ def main() -> int:
         backends.append(PrometheusBackend(args.prometheus))
     if args.elastic:
         backends.append(ElasticBackend(args.elastic))
+    if args.openapi:
+        backends.append(OpenAPIBackend(args.openapi, headers=headers_from_env()))
     if not backends:
         parser.error("configure at least one backend (--prometheus / --elastic)")
 

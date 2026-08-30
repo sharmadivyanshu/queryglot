@@ -7,6 +7,7 @@ own parser has the final word.
 """
 
 from .backends.elastic import ElasticBackend
+from .backends.openapi import OpenAPIBackend
 from .backends.prometheus import PrometheusBackend
 from .catalog import Catalog, SchemaItem
 from .engine import Answer, Engine
@@ -22,6 +23,7 @@ __all__ = [
     "Engine",
     "LLM",
     "OpenAICompatibleLLM",
+    "OpenAPIBackend",
     "PrometheusBackend",
     "SchemaItem",
     "SchemaRetriever",

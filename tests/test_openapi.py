@@ -257,3 +257,10 @@ def test_mutating_request_abstains_because_operation_is_absent():
     final = graph.invoke({"question": "remove every animal from storage"})
     assert final["outcome"] == "abstained"
     assert llm.calls == []
+
+
+def test_public_export():
+    import queryglot
+
+    assert queryglot.OpenAPIBackend is OpenAPIBackend
+    assert "OpenAPIBackend" in queryglot.__all__

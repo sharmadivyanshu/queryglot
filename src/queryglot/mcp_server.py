@@ -15,6 +15,7 @@ from mcp.server.fastmcp import FastMCP
 
 from .backends import Backend
 from .backends.elastic import ElasticBackend
+from .backends.openapi import OpenAPIBackend, headers_from_env
 from .backends.prometheus import PrometheusBackend
 from .engine import Engine
 
@@ -30,6 +31,8 @@ def get_engine() -> Engine:
             backends.append(PrometheusBackend(url))
         if url := os.getenv("QUERYGLOT_ELASTIC"):
             backends.append(ElasticBackend(url, os.getenv("QUERYGLOT_ELASTIC_INDEX", "*")))
+        if url := os.getenv("QUERYGLOT_OPENAPI"):
+            backends.append(OpenAPIBackend(url, headers=headers_from_env()))
         _engine = Engine(backends)
         _engine.refresh_schema()
     return _engine
@@ -67,12 +70,15 @@ def main() -> None:
     parser.add_argument("--prometheus", help="Prometheus base URL")
     parser.add_argument("--elastic", help="Elasticsearch base URL")
     parser.add_argument("--elastic-index", default="*")
+    parser.add_argument("--openapi", help="OpenAPI service base URL (API root)")
     args = parser.parse_args()
     if args.prometheus:
         os.environ["QUERYGLOT_PROMETHEUS"] = args.prometheus
     if args.elastic:
         os.environ["QUERYGLOT_ELASTIC"] = args.elastic
         os.environ["QUERYGLOT_ELASTIC_INDEX"] = args.elastic_index
+    if args.openapi:
+        os.environ["QUERYGLOT_OPENAPI"] = args.openapi
     server.run()
 
 

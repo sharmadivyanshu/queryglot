@@ -17,11 +17,18 @@ the model never writes a URL.
 from __future__ import annotations
 
 import json
+import os
 import urllib.parse
 
 from ..catalog import SchemaItem
 from . import Execution, Validation
 from .http import Transport, urllib_transport
+
+
+def headers_from_env() -> dict[str, str]:
+    """QUERYGLOT_OPENAPI_HEADERS is a JSON object of header name -> value."""
+    raw = os.getenv("QUERYGLOT_OPENAPI_HEADERS", "")
+    return json.loads(raw) if raw else {}
 
 
 class OpenAPIBackend:
