@@ -1,0 +1,10 @@
+{"question": "how much memory is prometheus using right now?", "backend": "prometheus", "must_reference": ["process_resident_memory_bytes"], "expect": "answered"}
+{"question": "rate of http requests over the last 5 minutes, split by handler", "backend": "prometheus", "must_reference": ["prometheus_http_requests_total"], "expect": "answered"}
+{"question": "how many goroutines are running?", "backend": "prometheus", "must_reference": [["go_goroutines", "go_sched_goroutines_goroutines"]], "expect": "answered"}
+{"question": "p95 http request duration", "backend": "prometheus", "must_reference": ["prometheus_http_request_duration_seconds_bucket"], "expect": "answered"}
+{"question": "cpu usage rate of the prometheus process", "backend": "prometheus", "must_reference": ["process_cpu_seconds_total"], "expect": "answered"}
+{"question": "how many open file descriptors?", "backend": "prometheus", "must_reference": ["process_open_fds"], "expect": "answered"}
+{"question": "total samples appended to the tsdb", "backend": "prometheus", "must_reference": ["prometheus_tsdb_head_samples_appended_total"], "expect": "answered"}
+{"question": "how many alertmanagers are discovered?", "backend": "prometheus", "must_reference": ["prometheus_notifications_alertmanagers_discovered"], "expect": "answered"}
+{"question": "kubernetes pod restarts in the payments namespace", "backend": "prometheus", "must_reference": [], "expect": "abstained"}
+{"question": "bitcoin wallet balance", "backend": "prometheus", "must_reference": [], "expect": "abstained"}

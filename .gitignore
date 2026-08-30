@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.venv/
+.venv-mlx/
+.env
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+.DS_Store
+
+# regenerable training artifacts (scripts in finetune/ reproduce them)
+/adapters*/
+finetune/adapters*/
+finetune/data*/
+finetune/mmlu/run.log
+
+# internal working notes — never committed
+CLAUDE.md
+HANDOFF.md
+PROJECT_CORE.md
+.remember/

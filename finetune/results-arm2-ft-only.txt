@@ -1,0 +1,28 @@
+retrieval  : OFF (arm 2 mode)
+llm url    : http://127.0.0.1:8080/v1
+model sent : mlx-community/Qwen3-4B-4bit
+adapters   : finetune/adapters-noschema
+server has : mlx-community/Qwen3.5-4B-4bit, mlx-community/Qwen3-4B-4bit
+
+[FAIL] how much memory is prometheus using right now?
+       -> abstained: prometheus_memory_bytes_used_total
+[FAIL] rate of http requests over the last 5 minutes, split by handler
+       -> abstained: sum by (handler) (rate(http_requests_total[5m]))
+[PASS] how many goroutines are running?
+       -> answered: go_goroutines
+[FAIL] p95 http request duration
+       -> abstained: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))
+[FAIL] cpu usage rate of the prometheus process
+       -> abstained: rate(prometheus_process_cpu_usage_seconds_total[5m])
+[FAIL] how many open file descriptors?
+       -> abstained: sum by (le) (rate(file_descriptors_open_total[5m]))
+[FAIL] total samples appended to the tsdb
+       -> abstained: prometheus_tsdb_total_samples_appended
+[FAIL] how many alertmanagers are discovered?
+       -> abstained: prometheus_alertmanagers_discovered
+[PASS] kubernetes pod restarts in the payments namespace
+       -> abstained: sum by (pod) (rate(kubernetes_pod_restarts_total[5m]))
+[PASS] bitcoin wallet balance
+       -> abstained: balance_bitcoin_wallet_bytes
+
+3/10 correct

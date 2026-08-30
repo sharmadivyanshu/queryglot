@@ -1,0 +1,16 @@
+# Reproducible eval environment: real backends, synthetic telemetry.
+#   docker compose up -d
+#   QUERYGLOT_TEST_PROM=http://localhost:9090 poetry run pytest
+services:
+  prometheus:
+    image: prom/prometheus:v3.9.1
+    ports: ["9090:9090"]
+    # Self-scrape gives ~300 real metrics with metadata out of the box.
+
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports: ["9200:9200"]

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    services:
+      prometheus:
+        image: prom/prometheus:v3.9.1
+        ports: ["9090:9090"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: poetry install --with dev
+      - name: Lint
+        run: poetry run ruff check . && poetry run ruff format --check .
+      - name: Type check
+        run: poetry run mypy src/queryglot --ignore-missing-imports
+      - name: Wait for Prometheus to self-scrape
+        run: sleep 20
+      - name: Tests (including live-Prometheus integration)
+        env:
+          QUERYGLOT_TEST_PROM: http://localhost:9090
+        run: poetry run pytest -q

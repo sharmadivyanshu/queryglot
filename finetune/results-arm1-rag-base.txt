@@ -1,0 +1,28 @@
+retrieval  : on
+llm url    : http://127.0.0.1:8080/v1
+model sent : mlx-community/Qwen3-4B-4bit
+adapters   : (none — base model)
+server has : mlx-community/Qwen3-4B-4bit, mlx-community/Qwen3.5-4B-4bit
+
+[FAIL] how much memory is prometheus using right now?
+       -> abstained: A: process_resident_memory_bytes{job="prometheus"}
+[PASS] rate of http requests over the last 5 minutes, split by handler
+       -> answered: sum by (handler) (rate(prometheus_http_requests_total[5m]))
+[PASS] how many goroutines are running?
+       -> answered: sum by (app, instance, job) (go_goroutines)
+[PASS] p95 http request duration
+       -> answered: histogram_quantile(0.95, sum by (le) (rate(prometheus_http_request_duration_seconds_bucket[5m])))
+[PASS] cpu usage rate of the prometheus process
+       -> answered: sum by (instance, job, app) (rate(process_cpu_seconds_total[5m]))
+[PASS] how many open file descriptors?
+       -> answered: sum by (app, instance, job) (process_open_fds)
+[PASS] total samples appended to the tsdb
+       -> answered: sum by (instance, job, app) (prometheus_tsdb_head_samples_appended_total)
+[PASS] how many alertmanagers are discovered?
+       -> answered: sum by (app, instance, job) (prometheus_notifications_alertmanagers_discovered)
+[FAIL] kubernetes pod restarts in the payments namespace
+       -> answered: sum by (app, instance, job) (count by (app, instance, job) (prometheus_sd_kubernetes_events_total))
+[PASS] bitcoin wallet balance
+       -> abstained: nothing in this backend's schema matches the question — refusing to guess a metric name
+
+8/10 correct
