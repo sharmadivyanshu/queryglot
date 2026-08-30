@@ -38,8 +38,10 @@ queryglot makes it safely answerable."
 ## Target environment
 
 `swaggerapi/petstore3` (official Swagger Petstore v3 image) joins
-`eval/docker-compose.yml`. It serves its own spec at
-`/api/v3/openapi.json`. Live tests and golden cases run against it, gated by
+`eval/docker-compose.yml`. `base_url` is the API root
+(`http://localhost:8080/api/v3`); the spec is served relative to it at
+`/openapi.json`, so no `servers`-block parsing is needed to bind execution
+paths. Live tests and golden cases run against it, gated by
 `QUERYGLOT_TEST_PETSTORE`, mirroring the Prometheus pattern.
 
 ## Design
@@ -56,8 +58,9 @@ abstain).
 
 ### Introspection → catalog
 
-`OpenAPIBackend(base_url, spec_path="/api/v3/openapi.json", transport=None,
-headers=None)` fetches `{base_url}{spec_path}` via the shared `Transport`.
+`OpenAPIBackend(base_url, spec_path="/openapi.json", transport=None,
+headers=None)` — `base_url` is the API root — fetches `{base_url}{spec_path}`
+via the shared `Transport`.
 Each GET operation becomes one `SchemaItem`:
 
 | SchemaItem field | value |
