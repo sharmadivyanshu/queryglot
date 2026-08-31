@@ -9,9 +9,11 @@ like mcp_server.py.
 
 from __future__ import annotations
 
+import os
 import time
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from . import __version__
@@ -27,6 +29,29 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
     app = FastAPI(title="queryglot", version=__version__)
     if not engine.catalog.items:
         engine.refresh_schema()
+
+    if cors_origins:
+        from fastapi.middleware.cors import CORSMiddleware
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_methods=["GET", "POST"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
+
+    @app.middleware("http")
+    async def bearer_guard(request, call_next):  # env read per request so tests can monkeypatch
+        token = os.getenv("QUERYGLOT_SERVE_TOKEN", "")
+        if token and request.url.path.startswith("/api/"):
+            supplied = request.headers.get("authorization", "")
+            if supplied != f"Bearer {token}":
+                return JSONResponse({"detail": "invalid or missing bearer token"}, status_code=401)
+        return await call_next(request)
+
+    @app.post("/api/refresh")
+    def refresh() -> dict:
+        return engine.refresh_schema()
 
     @app.get("/api/status")
     def status() -> dict:

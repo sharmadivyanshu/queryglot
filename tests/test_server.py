@@ -47,3 +47,35 @@ def test_schema_lists_rendered_items():
     response = client_for().get("/api/schema")
     assert response.status_code == 200
     assert response.json() == {"items": []}
+
+
+def test_refresh_reintrospects():
+    response = client_for().post("/api/refresh")
+    assert response.status_code == 200
+    assert response.json() == {"prometheus": 0}
+
+
+def test_bearer_required_when_token_set(monkeypatch):
+    monkeypatch.setenv("QUERYGLOT_SERVE_TOKEN", "sekrit")
+    c = client_for()
+    assert c.get("/api/status").status_code == 401
+    assert c.get("/api/status", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    assert c.get("/api/status", headers={"Authorization": "Bearer sekrit"}).status_code == 200
+
+
+def test_no_token_means_open(monkeypatch):
+    monkeypatch.delenv("QUERYGLOT_SERVE_TOKEN", raising=False)
+    assert client_for().get("/api/status").status_code == 200
+
+
+def test_cors_headers_when_origin_configured():
+    engine = Engine([FakeBackend()], llm=ScriptedLLM("GOOD"))
+    app = create_app(engine, cors_origins=["https://customer.example"])
+    response = TestClient(app).options(
+        "/api/search",
+        headers={
+            "Origin": "https://customer.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.headers["access-control-allow-origin"] == "https://customer.example"
