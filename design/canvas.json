@@ -1,0 +1,56 @@
+{
+  "artboards": [
+    {
+      "file": "WidgetIdle.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 720,
+      "title": "Widget \u00b7 Idle"
+    },
+    {
+      "file": "WidgetThinking.dc.html",
+      "x": 560,
+      "y": 0,
+      "w": 480,
+      "h": 720,
+      "title": "Widget \u00b7 Thinking"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 1120,
+      "y": 0,
+      "w": 480,
+      "h": 720,
+      "title": "Widget \u00b7 Answered"
+    },
+    {
+      "file": "WidgetAbstained.dc.html",
+      "x": 1680,
+      "y": 0,
+      "w": 480,
+      "h": 720,
+      "title": "Widget \u00b7 Abstained"
+    },
+    {
+      "file": "Playground.dc.html",
+      "x": 0,
+      "y": 840,
+      "w": 1440,
+      "h": 900,
+      "title": "Playground"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-brief",
+      "x": 0,
+      "y": -150,
+      "w": 460,
+      "text": "queryglot ask-widget keyframes + playground \u2014 direction 2: command-palette anatomy, warm paper light / ink dark, single fixed indigo accent, Bricolage Grotesque + Instrument Sans + IBM Plex Mono.\nEach artboard has a Dark toggle in its tweak chips (Idle/Answered/Playground default light; Thinking/Abstained default dark). The playground top bar shows the shipping control: a moon/sun pill toggle.\nConstants: the exact validated query is always shown; abstention reads as calm information, never error."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

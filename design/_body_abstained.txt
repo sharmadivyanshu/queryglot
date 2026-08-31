@@ -1,0 +1,41 @@
+<div style="position: relative; width: 480px; height: 720px; overflow: hidden; background: {{t.bg}}">
+  <div style="position: absolute; left: 24px; top: 28px; width: 200px; height: 34px; border-radius: 10px; background: {{t.host}}"></div>
+  <div style="position: absolute; left: 24px; top: 78px; width: 150px; height: 18px; border-radius: 8px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 24px; top: 120px; width: 432px; height: 130px; border-radius: 14px; background: {{t.host}}"></div>
+  <div style="position: absolute; left: 24px; top: 274px; width: 205px; height: 110px; border-radius: 14px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 251px; top: 274px; width: 205px; height: 110px; border-radius: 14px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 32px; top: 100px; width: 416px; display: flex; flex-direction: column; background: {{t.surface}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.shadow}}">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid {{t.borderSoft}}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="{{t.textFaint}}" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="{{t.textFaint}}" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span style="font-size: 14px; color: {{t.text}}; flex-grow: 1">kubernetes pod restarts in payments</span>
+    </div>
+    <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 13px">
+      <div style="display: flex; flex-direction: column; gap: 9px; background: {{t.infoBg}}; border: 1px solid {{t.infoBorder}}; border-radius: 12px; padding: 15px">
+        <div style="display: flex; align-items: center; gap: 9px">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="{{t.info}}" stroke-width="1.5"/><path d="M9 5.5 V9.5" stroke="{{t.info}}" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="12.4" r="0.9" fill="{{t.info}}"/></svg>
+          <span class="disp" style="font-size: 13.5px; font-weight: 600; color: {{t.infoText}}">Nothing in your schema answers this</span>
+        </div>
+        <span style="font-size: 12.5px; line-height: 1.55; color: {{t.textMut}}">Your server has no kubernetes pod metrics, so queryglot won't invent one. A tool that guessed here would hand you a confident, wrong answer.</span>
+        <span class="chip" style="align-self: flex-start; background: {{t.surface}}; color: {{t.info}}; border: 1px solid {{t.infoBorder}}">refused to guess · 0 queries run</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: {{t.textFaint}}; padding: 2px 10px 6px">CLOSEST YOUR SCHEMA CAN ANSWER</span>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; background: {{t.surface2}}">
+          <span style="font-size: 13px; color: {{t.text}}; flex-grow: 1">process restarts</span>
+          <span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">⏎</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px">
+          <span style="font-size: 13px; color: {{t.textMut}}; flex-grow: 1">service discovery events</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid {{t.borderSoft}}">
+      <span style="display: inline-flex; align-items: center; gap: 5px"><span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">enter</span><span style="font-size: 11px; color: {{t.textFaint}}">ask</span></span>
+      <span style="display: inline-flex; align-items: center; gap: 5px"><span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">esc</span><span style="font-size: 11px; color: {{t.textFaint}}">close</span></span>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="{{t.accent}}" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="{{t.accent}}"/></svg>
+        <span class="disp" style="font-size: 11px; font-weight: 600; color: {{t.textFaint}}">queryglot</span>
+      </span>
+    </div>
+  </div>
+</div>

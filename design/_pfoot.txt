@@ -1,0 +1,8 @@
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid {{t.borderSoft}}">
+      <span style="display: inline-flex; align-items: center; gap: 5px"><span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">enter</span><span style="font-size: 11px; color: {{t.textFaint}}">ask</span></span>
+      <span style="display: inline-flex; align-items: center; gap: 5px"><span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">esc</span><span style="font-size: 11px; color: {{t.textFaint}}">close</span></span>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="{{t.accent}}" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="{{t.accent}}"/></svg>
+        <span class="disp" style="font-size: 11px; font-weight: 600; color: {{t.textFaint}}">queryglot</span>
+      </span>
+    </div>

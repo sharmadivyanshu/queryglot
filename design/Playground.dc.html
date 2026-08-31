@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Instrument Sans', system-ui, sans-serif; }
+    a { color: #6366F1; } a:hover { color: #818CF8; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .disp { font-family: 'Bricolage Grotesque', 'Instrument Sans', sans-serif; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; }
+    .kbd { font-family: 'IBM Plex Mono', monospace; font-size: 10px; border-radius: 5px; padding: 2px 6px; border-width: 1px; border-style: solid; }
+    .krow { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; }
+  </style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; background: {{t.bg}}; overflow: hidden; display: flex; flex-direction: column">
+  <div style="position: relative; display: flex; align-items: center; gap: 14px; height: 60px; padding: 0 24px; border-bottom: 1px solid {{t.border}}; background: {{t.surface}}">
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="{{t.accent}}" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="{{t.accent}}"/></svg>
+    <span class="disp" style="font-size: 16px; font-weight: 700; color: {{t.text}}; letter-spacing: -0.01em">queryglot</span>
+    <span class="chip" style="background: {{t.surface2}}; color: {{t.textMut}}; border: 1px solid {{t.border}}">playground</span>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 8px; background: {{t.surface2}}; border: 1px solid {{t.border}}; border-radius: 8px; padding: 7px 12px">
+        <span style="width: 7px; height: 7px; border-radius: 999px; background: {{t.accent}}"></span>
+        <span class="mono" style="font-size: 12px; color: {{t.textMut}}">http://localhost:9090</span>
+      </div>
+      <span class="chip" style="background: {{t.okBg}}; color: {{t.accent}}; border: 1px solid {{t.okBorder}}">connected · 312 metrics</span>
+      <div style="display: flex; align-items: center; width: 68px; height: 34px; padding: 4px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.border}}; box-shadow: 0 2px 8px rgba(0,0,0,0.06)">
+        <sc-if value="{{dark}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; justify-content: center; align-items: center; width: 26px; height: 26px; border-radius: 999px; background: {{t.hostSoft}}">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.5 A6 6 0 1 1 6.5 2.5 A5 5 0 0 0 13.5 9.5 Z" stroke="{{t.text}}" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="display: flex; justify-content: center; align-items: center; width: 26px; height: 26px; margin-left: 8px">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.2" stroke="{{t.textFaint}}" stroke-width="1.5"/><path d="M8 1.5 V3 M8 13 V14.5 M1.5 8 H3 M13 8 H14.5 M3.4 3.4 L4.5 4.5 M11.5 11.5 L12.6 12.6 M12.6 3.4 L11.5 4.5 M4.5 11.5 L3.4 12.6" stroke="{{t.textFaint}}" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </div>
+        </sc-if>
+        <sc-if value="{{light}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; justify-content: center; align-items: center; width: 26px; height: 26px">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.5 A6 6 0 1 1 6.5 2.5 A5 5 0 0 0 13.5 9.5 Z" stroke="{{t.text}}" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="display: flex; justify-content: center; align-items: center; width: 26px; height: 26px; margin-left: 8px; border-radius: 999px; background: {{t.hostSoft}}">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.2" stroke="{{t.text}}" stroke-width="1.5"/><path d="M8 1.5 V3 M8 13 V14.5 M1.5 8 H3 M13 8 H14.5 M3.4 3.4 L4.5 4.5 M11.5 11.5 L12.6 12.6 M12.6 3.4 L11.5 4.5 M4.5 11.5 L3.4 12.6" stroke="{{t.text}}" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+  <div style="position: relative; display: flex; flex-grow: 1; min-height: 0">
+    <div style="width: 280px; border-right: 1px solid {{t.border}}; background: {{t.surface}}; display: flex; flex-direction: column; gap: 4px; padding: 16px 12px">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: {{t.textFaint}}; padding: 0 8px 8px">YOUR SCHEMA</span>
+      <div style="display: flex; align-items: center; gap: 8px; background: {{t.surface2}}; border: 1px solid {{t.border}}; border-radius: 8px; padding: 7px 10px; margin: 0 4px 8px">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="{{t.textFaint}}" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="{{t.textFaint}}" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span style="font-size: 12px; color: {{t.textFaint}}">filter metrics…</span>
+      </div>
+      <div class="krow" style="background: {{t.okBg}}; border: 1px solid {{t.okBorder}}"><span class="mono" style="font-size: 11.5px; color: {{t.text}}">http_server_request_duration_seconds</span></div>
+      <div class="krow"><span class="mono" style="font-size: 11.5px; color: {{t.textMut}}">http_requests_total</span></div>
+      <div class="krow"><span class="mono" style="font-size: 11.5px; color: {{t.textMut}}">process_resident_memory_bytes</span></div>
+      <div class="krow"><span class="mono" style="font-size: 11.5px; color: {{t.textMut}}">process_cpu_seconds_total</span></div>
+      <div class="krow"><span class="mono" style="font-size: 11.5px; color: {{t.textMut}}">go_goroutines</span></div>
+      <div class="krow"><span class="mono" style="font-size: 11.5px; color: {{t.textMut}}">prometheus_tsdb_head_samples…</span></div>
+      <span style="font-size: 11px; color: {{t.textFaint}}; padding: 8px">+ 306 more, introspected live</span>
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px; background: {{t.surface2}}; border: 1px solid {{t.border}}; border-radius: 10px; padding: 12px">
+        <span style="font-size: 11px; font-weight: 600; color: {{t.textMut}}">EMBED THIS ON YOUR SITE</span>
+        <span class="mono" style="font-size: 10.5px; color: {{t.codeText}}; word-break: break-all">&lt;script src="queryglot.js" data-api="…"&gt;</span>
+      </div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 18px; padding: 28px 32px; min-width: 0">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="disp" style="font-size: 23px; font-weight: 700; color: {{t.text}}; letter-spacing: -0.015em">Your metrics, answerable in plain language.</span>
+        <span style="font-size: 13.5px; color: {{t.textMut}}">Every answer shows the exact validated query it ran. Off-schema questions get an honest refusal.</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; background: {{t.surface}}; border: 1px solid {{t.accent}}; border-radius: 12px; padding: 13px 18px; box-shadow: {{t.shadow}}">
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="{{t.textFaint}}" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="{{t.textFaint}}" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span style="font-size: 15px; color: {{t.text}}; flex-grow: 1">p95 latency by route over the last 15 minutes</span>
+        <span class="disp" style="font-size: 13px; font-weight: 600; color: {{t.onAccent}}; background: {{t.accent}}; border-radius: 8px; padding: 8px 18px">Ask</span>
+      </div>
+      <div style="display: flex; gap: 18px; min-height: 0">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.border}}">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: {{t.textFaint}}">RAN THIS EXACT QUERY</span>
+            <span class="chip" style="background: {{t.okBg}}; color: {{t.accent}}; border: 1px solid {{t.okBorder}}">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5.5 L4 8 L8.5 2.5" stroke="{{t.accent}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              validated by your server
+            </span>
+          </div>
+          <div class="mono" style="font-size: 12px; line-height: 1.6; color: {{t.codeText}}; background: {{t.codeBg}}; border: 1px solid {{t.borderSoft}}; border-radius: 10px; padding: 12px 14px"><span style="color: {{t.codeKw}}">histogram_quantile</span>(0.95, <span style="color: {{t.codeKw}}">sum by</span> (le, route) (<span style="color: {{t.codeKw}}">rate</span>(<span style="color: {{t.text}}">http_server_request_duration_seconds_bucket</span>[15m])))</div>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <div class="krow" style="background: {{t.surface2}}"><span class="mono" style="font-size: 12px; color: {{t.textMut}}">/api/checkout</span><span class="mono" style="font-size: 12.5px; color: {{t.text}}">412 ms</span></div>
+            <div class="krow"><span class="mono" style="font-size: 12px; color: {{t.textMut}}">/api/search</span><span class="mono" style="font-size: 12.5px; color: {{t.text}}">238 ms</span></div>
+            <div class="krow" style="background: {{t.surface2}}"><span class="mono" style="font-size: 12px; color: {{t.textMut}}">/api/login</span><span class="mono" style="font-size: 12.5px; color: {{t.text}}">96 ms</span></div>
+          </div>
+        </div>
+        <div style="width: 300px; display: flex; flex-direction: column; gap: 10px; background: {{t.surface}}; border: 1px solid {{t.border}}; border-radius: 14px; padding: 16px">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: {{t.textFaint}}">HOW IT GOT THERE</span>
+          <div style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 999px; background: {{t.okBg}}; border: 1px solid {{t.okBorder}}"></span><span style="font-size: 12.5px; color: {{t.textMut}}; flex-grow: 1">retrieve</span><span class="mono" style="font-size: 11px; color: {{t.textFaint}}">8 items · 12 ms</span></div>
+          <div style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 999px; background: {{t.okBg}}; border: 1px solid {{t.okBorder}}"></span><span style="font-size: 12.5px; color: {{t.textMut}}; flex-grow: 1">compile</span><span class="mono" style="font-size: 11px; color: {{t.textFaint}}">1 attempt · 1.8 s</span></div>
+          <div style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 999px; background: {{t.okBg}}; border: 1px solid {{t.okBorder}}"></span><span style="font-size: 12.5px; color: {{t.textMut}}; flex-grow: 1">validate</span><span class="mono" style="font-size: 11px; color: {{t.textFaint}}">server parser · 9 ms</span></div>
+          <div style="display: flex; align-items: center; gap: 10px"><span style="width: 16px; height: 16px; border-radius: 999px; background: {{t.okBg}}; border: 1px solid {{t.okBorder}}"></span><span style="font-size: 12.5px; color: {{t.textMut}}; flex-grow: 1">execute</span><span class="mono" style="font-size: 11px; color: {{t.textFaint}}">200 · 41 ms</span></div>
+          <span style="font-size: 11.5px; line-height: 1.5; color: {{t.textFaint}}; padding-top: 4px; border-top: 1px solid {{t.borderSoft}}">The model only wrote syntax. Your schema came from live introspection; your server's parser had the final word.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":null,"default":false}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.dark ?? false;
+    const accent = '#6366F1';
+    const t = dark ? {
+      accent, bg: '#101014', host: '#18181E', hostSoft: '#1E1E26',
+      surface: '#17171C', surface2: '#1E1E25', border: '#2A2A33', borderSoft: '#232329',
+      text: '#F4F4F5', textMut: '#A1A1AA', textFaint: '#71717C',
+      codeBg: '#0C0C10', codeText: '#C7D2FE', codeKw: '#A5B4FC',
+      kbdBg: '#1E1E25', kbdBorder: '#33333D', kbdText: '#8B8B96',
+      info: '#F59E0B', infoBg: 'rgba(245,158,11,0.08)', infoBorder: 'rgba(245,158,11,0.28)', infoText: '#FCD34D',
+      okBg: 'rgba(129,140,248,0.13)', okBorder: 'rgba(129,140,248,0.35)',
+      shadow: '0 20px 50px rgba(0,0,0,0.55)', onAccent: '#FFFFFF'
+    } : {
+      accent, bg: '#FAFAF8', host: '#EFEEEA', hostSoft: '#E7E6E1',
+      surface: '#FFFFFF', surface2: '#F4F4F2', border: '#E2E1DC', borderSoft: '#ECEBE6',
+      text: '#1C1917', textMut: '#57534E', textFaint: '#A8A29E',
+      codeBg: '#F6F6FB', codeText: '#3730A3', codeKw: '#6D28D9',
+      kbdBg: '#F4F4F2', kbdBorder: '#D6D3CD', kbdText: '#78716C',
+      info: '#D97706', infoBg: 'rgba(217,119,6,0.07)', infoBorder: 'rgba(217,119,6,0.3)', infoText: '#92400E',
+      okBg: 'rgba(99,102,241,0.08)', okBorder: 'rgba(99,102,241,0.3)',
+      shadow: '0 20px 50px rgba(28,25,23,0.14)', onAccent: '#FFFFFF'
+    };
+    return { t, dark, light: !dark };
+  }
+}
+</script>
+</body>
+</html>

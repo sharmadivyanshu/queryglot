@@ -1,0 +1,13 @@
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    a { color: #4ade80; } a:hover { color: #86efac; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .disp { font-family: 'Space Grotesk', 'IBM Plex Sans', sans-serif; }
+    .glass { background: rgba(15,23,42,0.66); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(148,163,184,0.16); border-radius: 16px; box-shadow: 0 24px 60px rgba(2,6,23,0.55); }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; }
+    .krow { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; }
+    .blob { position: absolute; border-radius: 24px; filter: blur(2px); }
+  </style>
+</helmet>

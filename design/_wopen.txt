@@ -1,0 +1,6 @@
+<div style="position: relative; width: 480px; height: 720px; overflow: hidden; background: {{t.bg}}">
+  <div style="position: absolute; left: 24px; top: 28px; width: 200px; height: 34px; border-radius: 10px; background: {{t.host}}"></div>
+  <div style="position: absolute; left: 24px; top: 78px; width: 150px; height: 18px; border-radius: 8px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 24px; top: 120px; width: 432px; height: 130px; border-radius: 14px; background: {{t.host}}"></div>
+  <div style="position: absolute; left: 24px; top: 274px; width: 205px; height: 110px; border-radius: 14px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 251px; top: 274px; width: 205px; height: 110px; border-radius: 14px; background: {{t.hostSoft}}"></div>

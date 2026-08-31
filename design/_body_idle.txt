@@ -1,0 +1,46 @@
+<div style="position: relative; width: 480px; height: 720px; overflow: hidden; background: {{t.bg}}">
+  <div style="position: absolute; left: 24px; top: 28px; width: 200px; height: 34px; border-radius: 10px; background: {{t.host}}"></div>
+  <div style="position: absolute; left: 24px; top: 78px; width: 150px; height: 18px; border-radius: 8px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 24px; top: 120px; width: 432px; height: 130px; border-radius: 14px; background: {{t.host}}"></div>
+  <div style="position: absolute; left: 24px; top: 274px; width: 205px; height: 110px; border-radius: 14px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 251px; top: 274px; width: 205px; height: 110px; border-radius: 14px; background: {{t.hostSoft}}"></div>
+  <div style="position: absolute; left: 32px; top: 120px; width: 416px; display: flex; flex-direction: column; background: {{t.surface}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.shadow}}">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid {{t.borderSoft}}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="{{t.textFaint}}" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="{{t.textFaint}}" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span style="font-size: 14px; color: {{t.textFaint}}; flex-grow: 1">Ask anything about your live metrics…</span>
+      <span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">⌘K</span>
+    </div>
+    <div style="padding: 12px 8px; display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: {{t.textFaint}}; padding: 4px 10px">SUGGESTED</span>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; background: {{t.surface2}}">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L6 7 L9 10 L14 4" stroke="{{t.accent}}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size: 13px; color: {{t.text}}; flex-grow: 1">error rate in the last hour</span>
+        <span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">⏎</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="6" width="3" height="7" rx="1" stroke="{{t.textFaint}}" stroke-width="1.4"/><rect x="9.5" y="3" width="3" height="10" rx="1" stroke="{{t.textFaint}}" stroke-width="1.4"/></svg>
+        <span style="font-size: 13px; color: {{t.textMut}}; flex-grow: 1">memory usage right now</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="{{t.textFaint}}" stroke-width="1.4"/><path d="M8 5 V8 L10.2 9.6" stroke="{{t.textFaint}}" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span style="font-size: 13px; color: {{t.textMut}}; flex-grow: 1">slowest routes today</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; padding: 10px 10px 4px">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1 L10.5 3.5 V8.5 L6 11 L1.5 8.5 V3.5 Z" stroke="{{t.textFaint}}" stroke-width="1.2"/></svg>
+        <span style="font-size: 11px; color: {{t.textFaint}}">Answers only from your schema — it refuses to guess.</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid {{t.borderSoft}}">
+      <span style="display: inline-flex; align-items: center; gap: 5px"><span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">enter</span><span style="font-size: 11px; color: {{t.textFaint}}">ask</span></span>
+      <span style="display: inline-flex; align-items: center; gap: 5px"><span class="kbd" style="background: {{t.kbdBg}}; border-color: {{t.kbdBorder}}; color: {{t.kbdText}}">esc</span><span style="font-size: 11px; color: {{t.textFaint}}">close</span></span>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="{{t.accent}}" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="{{t.accent}}"/></svg>
+        <span class="disp" style="font-size: 11px; font-weight: 600; color: {{t.textFaint}}">queryglot</span>
+      </span>
+    </div>
+  </div>
+  <div style="position: absolute; right: 28px; bottom: 28px; display: flex; align-items: center; gap: 8px; background: {{t.accent}}; border-radius: 999px; padding: 11px 18px; box-shadow: {{t.shadow}}">
+    <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="{{t.onAccent}}" stroke-width="1.7"/><circle cx="10" cy="10" r="2.4" fill="{{t.onAccent}}"/></svg>
+    <span class="disp" style="font-size: 13px; font-weight: 600; color: {{t.onAccent}}">Ask</span>
+  </div>
+</div>
