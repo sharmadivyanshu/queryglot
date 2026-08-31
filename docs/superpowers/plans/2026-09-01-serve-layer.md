@@ -49,6 +49,8 @@ serve = ["fastapi", "uvicorn"]
 ```
 
 In `[tool.poetry.group.dev.dependencies]` add `httpx = "^0.27"`.
+Also update `.github/workflows/ci.yml`'s install step to
+`poetry install --with dev --extras serve` (CI must have fastapi for the new tests).
 Run: `poetry lock && poetry install --extras serve --with dev`
 
 - [ ] **Step 2: Write the failing tests**
@@ -182,7 +184,7 @@ Expected: 5 passed
 
 ```bash
 poetry run pytest -q && poetry run ruff check . && poetry run ruff format --check . && poetry run mypy src/queryglot --ignore-missing-imports
-git add pyproject.toml poetry.lock src/queryglot/server.py tests/test_server.py
+git add pyproject.toml poetry.lock .github/workflows/ci.yml src/queryglot/server.py tests/test_server.py
 git commit -m "feat(serve): app factory with status, search, schema routes"
 ```
 
@@ -254,7 +256,7 @@ Expected: new tests FAIL (404 on /api/refresh; 200 where 401 expected; KeyError 
         )
 
     @app.middleware("http")
-    async def bearer_guard(request, call_next):  # noqa-free: env read per request so tests can monkeypatch
+    async def bearer_guard(request, call_next):  # env read per request so tests can monkeypatch
         token = os.getenv("QUERYGLOT_SERVE_TOKEN", "")
         if token and request.url.path.startswith("/api/"):
             supplied = request.headers.get("authorization", "")
@@ -263,7 +265,7 @@ Expected: new tests FAIL (404 on /api/refresh; 200 where 401 expected; KeyError 
         return await call_next(request)
 ```
 
-(imports: `import os`, `from fastapi.responses import JSONResponse`; the comment above is prose — do not write "noqa" anywhere in code.) Add the route:
+(imports: `import os`, `from fastapi.responses import JSONResponse`.) Add the route:
 
 ```python
     @app.post("/api/refresh")
@@ -301,7 +303,7 @@ git commit -m "feat(serve): refresh route, bearer auth, CORS"
 - [ ] **Step 1: Write the failing tests** (append to test_server.py)
 
 ```python
-def test_widget_js_404_hints_when_unbuilt(tmp_path):
+def test_widget_js_404_hints_when_unbuilt():
     response = client_for().get("/widget.js")
     assert response.status_code == 404
     assert "frontend" in response.json()["detail"]
@@ -319,7 +321,6 @@ And in `tests/test_prometheus_live.py` (inside the existing skip-guarded module)
 def test_serve_layer_end_to_end(backend):
     from fastapi.testclient import TestClient
 
-    from queryglot.llm import OpenAICompatibleLLM
     from queryglot.server import create_app
     from tests.conftest import ScriptedLLM
 
@@ -332,7 +333,7 @@ def test_serve_layer_end_to_end(backend):
     assert "process_resident_memory_bytes" in body["query"]
 ```
 
-(`OpenAICompatibleLLM` import is unnecessary — do not include it; listed here so the implementer knows it was considered and rejected: live LLM is not required, ScriptedLLM keeps the test deterministic.)
+(ScriptedLLM keeps the live test deterministic — no live LLM needed.)
 
 - [ ] **Step 2: Run tests to verify they fail**
 
