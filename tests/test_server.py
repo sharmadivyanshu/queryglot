@@ -79,3 +79,25 @@ def test_cors_headers_when_origin_configured():
         },
     )
     assert response.headers["access-control-allow-origin"] == "https://customer.example"
+
+
+def test_cors_preflight_works_with_bearer_token(monkeypatch):
+    monkeypatch.setenv("QUERYGLOT_SERVE_TOKEN", "sekrit")
+    engine = Engine([FakeBackend()], llm=ScriptedLLM("GOOD"))
+    app = create_app(engine, cors_origins=["https://customer.example"])
+    client = TestClient(app)
+
+    # OPTIONS preflight carries no Authorization header and must not be 401'd
+    preflight_response = client.options(
+        "/api/search",
+        headers={
+            "Origin": "https://customer.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert preflight_response.status_code == 200
+    assert preflight_response.headers["access-control-allow-origin"] == "https://customer.example"
+
+    # Plain GET without bearer still 401s
+    status_response = client.get("/api/status")
+    assert status_response.status_code == 401

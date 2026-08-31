@@ -9,6 +9,7 @@ like mcp_server.py.
 
 from __future__ import annotations
 
+import hmac
 import os
 import time
 
@@ -42,10 +43,15 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
 
     @app.middleware("http")
     async def bearer_guard(request, call_next):  # env read per request so tests can monkeypatch
+        # OPTIONS requests exempt from bearer check (CORS preflights carry no Authorization)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         token = os.getenv("QUERYGLOT_SERVE_TOKEN", "")
         if token and request.url.path.startswith("/api/"):
             supplied = request.headers.get("authorization", "")
-            if supplied != f"Bearer {token}":
+            expected = f"Bearer {token}"
+            if not hmac.compare_digest(supplied, expected):
                 return JSONResponse({"detail": "invalid or missing bearer token"}, status_code=401)
         return await call_next(request)
 
