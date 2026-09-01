@@ -1,0 +1,63 @@
+/*
+ * Resets + shared class helpers for the widget panel, scoped under
+ * .qg-panel so they never leak onto a host page. Font stacks list the
+ * mockups' display/mono faces first but ship no @font-face / webfont
+ * link — v1 falls back straight to system fonts.
+ */
+.qg-panel,
+.qg-panel * {
+  box-sizing: border-box;
+}
+
+.qg-panel {
+  margin: 0;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+}
+
+.qg-panel a {
+  color: var(--qg-accent);
+}
+
+.qg-panel .mono {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+.qg-panel .disp {
+  font-family: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
+}
+
+.qg-panel .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.qg-panel .kbd {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px;
+  border-radius: 5px;
+  padding: 2px 6px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.qg-panel .krow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.qg-panel button,
+.qg-panel input {
+  font-family: inherit;
+}
+
+.qg-panel input::placeholder {
+  color: var(--qg-text-faint);
+}
