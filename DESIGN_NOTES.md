@@ -416,6 +416,20 @@ deterministic, and testable — and none of them would have been found
 without asking a real question against a real server and refusing to accept
 a fluent answer.
 
+Coda (next session of live testing found three more layers): the shipped
+suggestion chips themselves missed the vocabulary ("slowest"/"routes"/
+singular "error" absent from SYNONYMS — one chip abstained, another hit a
+queue metric); English stopwords in queries outscored real matches ("the"
+appears twice in a help text — query-side stopword filter); metadata-only
+DEAD metrics (zero live series) evaded the label check and produced empty
+"successes" — introspection now drops a metric whose series probe ran and
+found nothing; and _bucket on a SUMMARY is valid-but-always-empty PromQL —
+validation now uses the metadata type to reject it. Residual, named
+honestly: for "which endpoint has max latency", lexical retrieval prefers
+the live Consul SD summary (whose label is literally `endpoint`) over the
+HTTP histogram (label `handler`) — a semantic preference no lexical ranker
+can adjudicate; the boundary where a reranker would begin.
+
 ---
 
 ## Questions to be able to answer

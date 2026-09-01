@@ -24,7 +24,11 @@ _TOKEN = re.compile(r"[a-z0-9]+")
 SYNONYMS: dict[str, list[str]] = {
     "latency": ["duration", "seconds", "time", "latencies"],
     "slow": ["duration", "seconds", "latency", "latencies"],
-    "errors": ["failed", "errors", "error", "5xx", "exceptions"],
+    "slowest": ["duration", "seconds", "latency", "latencies"],
+    "route": ["handler", "path"],
+    "routes": ["handler", "path"],
+    "errors": ["failed", "failures", "errors", "error", "5xx", "exceptions"],
+    "error": ["failed", "failures", "errors", "5xx", "exceptions"],
     "failures": ["failed", "errors", "error"],
     "traffic": ["requests", "http", "rate"],
     "throughput": ["requests", "rate", "total"],
@@ -38,6 +42,15 @@ SYNONYMS: dict[str, list[str]] = {
     "endpoint": ["handler", "route", "path"],
     "endpoints": ["handler", "route", "path"],
 }
+
+
+# English function words carry no schema signal but litter help texts, so a
+# query token like "the" can outscore a real vocabulary match. Filtered from
+# QUERY tokens only — document tokens keep them, where idf discounts them.
+STOPWORDS = frozenset(
+    "a an and are by for how in is it me my of on or our per that the this "
+    "to us was what which with your".split()
+)
 
 
 def tokenize(text: str) -> list[str]:
@@ -86,7 +99,7 @@ class SchemaRetriever:
     def search(
         self, question: str, *, backend: str | None = None, k: int = 8
     ) -> list[tuple[SchemaItem, float]]:
-        q_tokens = expand(tokenize(question))
+        q_tokens = [t for t in expand(tokenize(question)) if t not in STOPWORDS]
         q_lower = question.lower()
         scored: list[tuple[SchemaItem, float]] = []
         for idx, item in enumerate(self.catalog.items):

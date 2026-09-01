@@ -91,3 +91,43 @@ def test_endpoint_synonym_beats_label_coincidence():
     )
     hits = SchemaRetriever(c).search("which endpoint is causing the max latency?")
     assert hits[0][0].name == "prometheus_http_request_duration_seconds"
+
+
+def test_default_suggestion_vocabulary_clears_the_gate():
+    """The playground ships three default suggestions — every one must rank a
+    sensible metric on a realistic self-scraping-Prometheus catalog. Observed
+    live: 'slowest routes today' abstained and 'error rate' hit a queue metric."""
+    c = Catalog()
+    c.add(
+        SchemaItem(
+            name="prometheus_http_request_duration_seconds",
+            backend="prometheus",
+            kind="metric",
+            type="histogram",
+            help="Histogram of latencies for HTTP requests",
+            labels=("handler",),
+        ),
+        SchemaItem(
+            name="prometheus_sd_http_failures_total",
+            backend="prometheus",
+            kind="metric",
+            type="counter",
+            help="Number of HTTP service discovery refresh failures",
+            labels=("name",),
+        ),
+        SchemaItem(
+            name="prometheus_notifications_queue_length",
+            backend="prometheus",
+            kind="metric",
+            type="gauge",
+            help="The capacity of the alert notifications queue",
+            labels=(),
+        ),
+    )
+    retriever = SchemaRetriever(c)
+
+    slowest = retriever.search("slowest routes today")
+    assert slowest and slowest[0][0].name == "prometheus_http_request_duration_seconds"
+
+    errors = retriever.search("error rate in the last hour")
+    assert errors and errors[0][0].name == "prometheus_sd_http_failures_total"

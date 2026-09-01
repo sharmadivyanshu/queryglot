@@ -157,6 +157,7 @@ class PrometheusBackend:
         self.label_lookup_limit = label_lookup_limit
         self._known: set[str] = set()
         self._known_labels: dict[str, tuple[str, ...]] = {}
+        self._known_types: dict[str, str] = {}
 
     # ---- introspect --------------------------------------------------------
 
@@ -165,6 +166,12 @@ class PrometheusBackend:
         items: list[SchemaItem] = []
         for metric_name, entries in sorted(meta.items()):
             entry = entries[0] if entries else {}
+            labels = self._label_keys(metric_name)
+            if labels is None:
+                # Metadata lists every metric the server has ever known;
+                # a probed metric with zero live series can answer nothing —
+                # offering it to retrieval only manufactures empty "successes".
+                continue
             items.append(
                 SchemaItem(
                     name=metric_name,
@@ -172,14 +179,18 @@ class PrometheusBackend:
                     kind="metric",
                     type=entry.get("type", ""),
                     help=entry.get("help", ""),
-                    labels=self._label_keys(metric_name),
+                    labels=labels,
                 )
             )
         self._known = {i.name for i in items}
         self._known_labels = {i.name: i.labels for i in items}
+        self._known_types = {i.name: i.type for i in items}
         return items
 
-    def _label_keys(self, metric_name: str) -> tuple[str, ...]:
+    def _label_keys(self, metric_name: str) -> tuple[str, ...] | None:
+        """Label keys from live series; () when the probe was skipped or
+        errored; None when the probe RAN and found no series at all — the
+        metric is metadata-only and dead on this server."""
         if self.label_lookup_limit <= 0:
             return ()
         self.label_lookup_limit -= 1
@@ -204,6 +215,8 @@ class PrometheusBackend:
             except (ConnectionError, ValueError):
                 return ()
             keys = {k for s in series for k in s if k != "__name__"}
+            if not keys and not series:
+                return None
         return tuple(sorted(keys))
 
     # ---- validate ----------------------------------------------------------
@@ -234,6 +247,21 @@ class PrometheusBackend:
                         "catalog; use only metrics from the schema provided"
                     ),
                 )
+
+            # _bucket series exist only for histograms; a summary's _bucket
+            # query is valid PromQL that always returns empty.
+            for name in metric_candidates(query):
+                if name.endswith("_bucket"):
+                    base_name = name[: -len("_bucket")]
+                    if self._known_types.get(base_name) == "summary":
+                        return Validation(
+                            ok=False,
+                            error=(
+                                f"{base_name} is a summary — it has no _bucket series; "
+                                f'use {base_name}{{quantile="..."}} or '
+                                f"{base_name}_sum / {base_name}_count"
+                            ),
+                        )
 
             # Grouping by an ABSENT label is valid PromQL — it silently
             # collapses every series into one group, which reads as an answer

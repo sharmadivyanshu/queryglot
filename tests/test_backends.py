@@ -82,7 +82,7 @@ def test_prometheus_validate_flags_unknown_metric():
                 200,
                 {"status": "success", "data": {"up": [{"type": "gauge", "help": ""}]}},
             ),
-            "/api/v1/series": (200, {"status": "success", "data": []}),
+            "/api/v1/series": (200, {"status": "success", "data": [{"__name__": "m", "job": "j"}]}),
             "/api/v1/format_query": (
                 200,
                 {"status": "success", "data": "rate(imaginary_total[5m])"},
@@ -189,7 +189,7 @@ def test_prometheus_validate_accepts_histogram_series_suffixes():
                     "data": {"req_duration": [{"type": "histogram", "help": ""}]},
                 },
             ),
-            "/api/v1/series": (200, {"status": "success", "data": []}),
+            "/api/v1/series": (200, {"status": "success", "data": [{"__name__": "m", "job": "j"}]}),
             "/api/v1/format_query": (200, {"status": "success", "data": "ok"}),
         }
     )
@@ -292,3 +292,69 @@ def test_histogram_labels_come_from_bucket_series():
     assert items[0].labels == ("handler", "le")
     verdict = backend.validate("sum by (endpoint) (rate(h_seconds_bucket[5m]))")
     assert not verdict.ok and "endpoint" in verdict.error
+
+
+def test_introspect_drops_metrics_with_no_live_series():
+    """Metadata lists every metric the server has EVER known; dead ones (no
+    series) can't answer anything, evade the label check, and return empty
+    'successes'. When the series probe ran and found nothing, drop the metric."""
+
+    def transport(method, url, body, headers):
+        if "/api/v1/metadata" in url:
+            return 200, json.dumps(
+                {
+                    "status": "success",
+                    "data": {
+                        "alive_total": [{"type": "counter", "help": ""}],
+                        "dead_rpc_seconds": [{"type": "summary", "help": ""}],
+                    },
+                }
+            )
+        if "/api/v1/series" in url and "alive_total" in url:
+            return 200, json.dumps(
+                {"status": "success", "data": [{"__name__": "alive_total", "job": "j"}]}
+            )
+        return 200, json.dumps({"status": "success", "data": []})
+
+    backend = PrometheusBackend("http://prom", transport=transport)
+    names = {i.name for i in backend.introspect()}
+    assert names == {"alive_total"}
+
+
+def test_introspect_keeps_metrics_when_probe_was_skipped():
+    def transport(method, url, body, headers):
+        if "/api/v1/metadata" in url:
+            return 200, json.dumps(
+                {"status": "success", "data": {"unprobed_total": [{"type": "counter", "help": ""}]}}
+            )
+        return 200, json.dumps({"status": "success", "data": []})
+
+    backend = PrometheusBackend("http://prom", transport=transport, label_lookup_limit=0)
+    names = {i.name for i in backend.introspect()}
+    assert names == {"unprobed_total"}
+
+
+def test_validate_rejects_bucket_suffix_on_summary():
+    """_bucket series exist only for histograms. A summary's _bucket query is
+    valid PromQL that always returns empty — observed live on the self-exported
+    consul SD summary. The metadata knows the type; validation should use it."""
+
+    def transport(method, url, body, headers):
+        if "/api/v1/metadata" in url:
+            return 200, json.dumps(
+                {"status": "success", "data": {"rpc_seconds": [{"type": "summary", "help": ""}]}}
+            )
+        if "/api/v1/series" in url:
+            return 200, json.dumps(
+                {"status": "success", "data": [{"__name__": "rpc_seconds", "endpoint": "catalog"}]}
+            )
+        return 200, json.dumps({"status": "success", "data": "ok"})
+
+    backend = PrometheusBackend("http://prom", transport=transport)
+    backend.introspect()
+    verdict = backend.validate("sum by (endpoint) (rate(rpc_seconds_bucket[5m]))")
+    assert not verdict.ok
+    assert "summary" in verdict.error and "_bucket" in verdict.error
+    # the summary's real series remain fine
+    assert backend.validate("rate(rpc_seconds_count[5m])").ok
+    assert backend.validate('rpc_seconds{quantile="0.5"}').ok
