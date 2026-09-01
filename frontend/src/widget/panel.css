@@ -4,6 +4,17 @@
  * mockups' display/mono faces first but ship no @font-face / webfont
  * link — v1 falls back straight to system fonts.
  */
+
+/*
+ * :host sets an inherited property on the shadow root's host element, so it
+ * cascades to every element inside the shadow tree — including the floating
+ * pill, which sits outside .qg-panel and would otherwise fall back to the
+ * host page's font (the .disp class only matches inside .qg-panel).
+ */
+:host {
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+}
+
 .qg-panel,
 .qg-panel * {
   box-sizing: border-box;

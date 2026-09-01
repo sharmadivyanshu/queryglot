@@ -100,6 +100,80 @@ test('abstained outcome maps to abstained state', async () => {
   await waitFor(() => expect(result.current.state.kind).toBe('abstained'))
 })
 
+test('abstained state fetches schema-derived suggestions keyed on the longest word in the question', async () => {
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.includes('/api/search')) {
+      return { ok: true, status: 200, json: async () => ({ ...answered, outcome: 'abstained', reason: 'nothing matches' }) }
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ items: ['go_goroutines (gauge)', 'process_cpu_seconds_total (counter)'] }),
+    }
+  })
+  vi.stubGlobal('fetch', fetchMock)
+
+  const { result } = renderHook(() => useAsk(createClient({ api: 'http://x' })))
+  act(() => {
+    result.current.ask('kubernetes pod cpu usage')
+  })
+  await waitFor(() => expect(result.current.state.kind).toBe('abstained'))
+  await waitFor(() => {
+    if (result.current.state.kind !== 'abstained') throw new Error('not abstained yet')
+    expect(result.current.state.suggestions).toEqual(['go_goroutines', 'process_cpu_seconds_total'])
+  })
+
+  const schemaCall = fetchMock.mock.calls.find(([url]) => (url as string).includes('/api/schema'))
+  expect(schemaCall?.[0]).toContain('query=kubernetes')
+})
+
+test('abstained suggestions fall back to the unfiltered schema top items when the lexical search is empty', async () => {
+  let schemaCalls = 0
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.includes('/api/search')) {
+      return { ok: true, status: 200, json: async () => ({ ...answered, outcome: 'abstained', reason: 'nothing matches' }) }
+    }
+    schemaCalls += 1
+    if (schemaCalls === 1) {
+      expect(url).toContain('query=bitcoin')
+      return { ok: true, status: 200, json: async () => ({ items: [] }) }
+    }
+    expect(url).not.toContain('query=')
+    return { ok: true, status: 200, json: async () => ({ items: ['up (gauge)'] }) }
+  })
+  vi.stubGlobal('fetch', fetchMock)
+
+  const { result } = renderHook(() => useAsk(createClient({ api: 'http://x' })))
+  act(() => {
+    result.current.ask('bitcoin wallet balance')
+  })
+  await waitFor(() => expect(result.current.state.kind).toBe('abstained'))
+  await waitFor(() => {
+    if (result.current.state.kind !== 'abstained') throw new Error('not abstained yet')
+    expect(result.current.state.suggestions).toEqual(['up'])
+  })
+  expect(schemaCalls).toBe(2)
+})
+
+test('abstained suggestions stay empty when both the lexical and fallback schema searches are empty', async () => {
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.includes('/api/search')) {
+      return { ok: true, status: 200, json: async () => ({ ...answered, outcome: 'abstained', reason: 'nothing matches' }) }
+    }
+    return { ok: true, status: 200, json: async () => ({ items: [] }) }
+  })
+  vi.stubGlobal('fetch', fetchMock)
+
+  const { result } = renderHook(() => useAsk(createClient({ api: 'http://x' })))
+  act(() => {
+    result.current.ask('bitcoin wallet balance')
+  })
+  await waitFor(() => expect(result.current.state.kind).toBe('abstained'))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  if (result.current.state.kind !== 'abstained') throw new Error('not abstained')
+  expect(result.current.state.suggestions).toEqual([])
+})
+
 test('failed outcome (HTTP 200) maps to failed state carrying the answer', async () => {
   mockFetch({ ...answered, outcome: 'failed', reason: 'engine error' })
   const { result } = renderHook(() => useAsk(createClient({ api: 'http://x' })))

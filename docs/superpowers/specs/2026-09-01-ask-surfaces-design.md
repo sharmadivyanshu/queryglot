@@ -105,9 +105,10 @@ package.json, own tooling, never mixed into Poetry.
 The script mounts a Shadow-DOM root (all styles injected inside — Tailwind
 compiled with a shadow-root selector strategy; zero leakage either way),
 renders the floating "Ask" pill (bottom-right), opens the panel on click or
-⌘K/ctrl+K. React is bundled into the IIFE; accepted budget ~50KB gzipped
-(conscious tradeoff, decided in-session: DX + playground reuse over the
-~12KB vanilla floor).
+⌘K/ctrl+K. The widget build aliases `react`/`react-dom` to `preact/compat`
+(components stay React-authored; the playground build uses real React) —
+~13KB gzipped against the 60KB ceiling, versus the ~50KB an unaliased React
+bundle would have cost.
 
 **States** (visual authority = the four approved artboards):
 
@@ -132,10 +133,12 @@ renders the floating "Ask" pill (bottom-right), opens the panel on click or
 **Theming**: design tokens as CSS variables on the shadow root (the two
 approved palettes: paper `#FAFAF8`-family light, ink `#101014`-family dark,
 fixed indigo `#6366F1` accent, amber abstention). `data-theme="auto"` follows
-`prefers-color-scheme`. Fonts: system-stack fallbacks by default; the brand
-faces (Bricolage Grotesque / Instrument Sans / IBM Plex Mono) load only via
-opt-in `data-fonts="google"` — an embed must not force third-party font
-loads on someone else's page.
+`prefers-color-scheme`. Fonts: system-stack fallbacks only in v1 — the brand
+faces (Bricolage Grotesque / Instrument Sans / IBM Plex Mono) are named in
+the stacks but never loaded as webfonts. An opt-in `data-fonts="google"` to
+load them is future work, not v1: an embed must not force third-party font
+loads on someone else's page without an explicit decision on when that
+opt-in ships.
 
 **A11y**: full keyboard path (open ⌘K, navigate ↑↓, ask ⏎, close esc), focus
 trap while open, `aria-live="polite"` on state changes, 44px minimum
@@ -155,8 +158,9 @@ per-stage timings in v1 — the API doesn't measure them).
 1216) — implemented as the CSS-transition variant with the fixes decided
 in-session: wired to a ~20-line ThemeProvider (class on root +
 localStorage), keyboard activation (Enter/Space), `aria-pressed` + label,
-≥44px hit area, token colors instead of zinc hardcodes. lucide-react for its
-icons (and all playground icons).
+≥44px hit area, token colors instead of zinc hardcodes. v1 ships hand-rolled
+inline SVGs everywhere — the theme toggle's sun/moon and every playground
+icon — no icon library dependency.
 
 **Serving**: `npm run build` outputs the SPA + `widget.js`; a build step
 copies them into `src/queryglot/_static/` so the published wheel ships them

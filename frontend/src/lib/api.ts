@@ -51,6 +51,22 @@ async function request<T>(url: string, token: string | undefined, init?: Request
   return body
 }
 
+/** The longest whitespace-delimited word in a question — the crudest useful
+ * signal for a follow-up `/api/schema` lexical search when an ask abstains. */
+export function longestWord(text: string): string {
+  const words = text.split(/[^a-zA-Z0-9_]+/).filter(Boolean)
+  return words.reduce((longest, word) => (word.length > longest.length ? word : longest), '')
+}
+
+/** Rendered schema items look like `name (type) — labels: ... — help text`;
+ * the bare item name is everything before the first ` (`. */
+export function extractItemNames(items: string[]): string[] {
+  return items.map((item) => {
+    const idx = item.indexOf(' (')
+    return idx === -1 ? item : item.slice(0, idx)
+  })
+}
+
 export function createClient({ api, token }: ClientOptions): Client {
   return {
     search(question, backend) {

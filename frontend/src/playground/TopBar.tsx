@@ -14,6 +14,10 @@ function totalMetricsOf(status: StatusResponse): number {
   return Object.values(status.backends).reduce((sum, count) => sum + count, 0)
 }
 
+function backendNamesOf(status: StatusResponse): string {
+  return Object.keys(status.backends).join(', ')
+}
+
 const chipBase =
   'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium'
 
@@ -31,6 +35,12 @@ export function TopBar({ status, unreachable }: TopBarProps) {
       <span className="font-disp text-[16px] font-bold tracking-[-0.01em] text-qg-text">queryglot</span>
       <span className={`${chipBase} border-qg-border bg-qg-surface2 text-qg-text-mut`}>playground</span>
       <div className="ml-auto flex items-center gap-2.5">
+        {status && backendNamesOf(status) && (
+          <div className="flex items-center gap-2 rounded-lg border border-qg-border bg-qg-surface2 px-3 py-[7px]">
+            <span className="h-[7px] w-[7px] rounded-full bg-qg-accent" />
+            <span className="font-mono text-[12px] text-qg-text-mut">{backendNamesOf(status)}</span>
+          </div>
+        )}
         {unreachable ? (
           <span className={`${chipBase} border-qg-info-border bg-qg-info-bg text-qg-info-text`}>
             backend unreachable

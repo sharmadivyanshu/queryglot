@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Client, SearchResponse } from './api'
+import { extractItemNames, longestWord } from './api'
 
 /**
  * The four pipeline stages the "thinking" state walks through:
@@ -15,7 +16,7 @@ export type AskState =
   | { kind: 'idle' }
   | { kind: 'thinking'; stage: ThinkingStage }
   | { kind: 'answered'; answer: SearchResponse }
-  | { kind: 'abstained'; answer: SearchResponse }
+  | { kind: 'abstained'; answer: SearchResponse; suggestions: string[] }
   | { kind: 'failed'; answer: SearchResponse; error?: undefined }
   | { kind: 'failed'; answer?: undefined; error: string }
 
@@ -27,6 +28,21 @@ export interface UseAskResult {
 
 const STAGE_INTERVAL_MS = 600
 const THINKING_CAP: ThinkingStage = 2
+
+const ABSTAINED_SUGGESTION_LIMIT = 2
+
+/**
+ * Schema-derived "closest your schema can answer" rows for an abstained
+ * response: a lexical `/api/schema` lookup keyed on the question's longest
+ * word, falling back to the unfiltered top items when that search comes up
+ * empty (e.g. the question shares no vocabulary with the schema at all).
+ */
+async function abstainedSuggestions(client: Client, question: string): Promise<string[]> {
+  const word = longestWord(question)
+  const first = await client.schema(word, ABSTAINED_SUGGESTION_LIMIT)
+  const response = first.items.length > 0 || !word ? first : await client.schema('', ABSTAINED_SUGGESTION_LIMIT)
+  return extractItemNames(response.items)
+}
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -87,7 +103,16 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
           if (answer.outcome === 'answered') {
             setState({ kind: 'answered', answer })
           } else if (answer.outcome === 'abstained') {
-            setState({ kind: 'abstained', answer })
+            setState({ kind: 'abstained', answer, suggestions: [] })
+            abstainedSuggestions(client, question)
+              .then((suggestions) => {
+                if (requestIdRef.current !== requestId) return
+                setState((current) => (current.kind === 'abstained' ? { ...current, suggestions } : current))
+              })
+              .catch(() => {
+                // A failed schema lookup leaves the abstain card standing
+                // without extra rows — never turns a calm refusal into an error.
+              })
           } else {
             setState({ kind: 'failed', answer })
           }

@@ -31,7 +31,11 @@ class SearchRequest(BaseModel):
     backend: str | None = None
 
 
-def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI:
+def create_app(
+    engine: Engine,
+    cors_origins: list[str] | None = None,
+    static_dir: Path | None = None,
+) -> FastAPI:
     app = FastAPI(title="queryglot", version=__version__)
     if not engine.catalog.items:
         engine.refresh_schema()
@@ -121,7 +125,16 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
             items = [i for i in items if needle in i.name.lower() or needle in i.help.lower()]
         return {"items": [item.render() for item in items[:limit]]}
 
-    static_dir = Path(__file__).parent / "_static"
+    static_dir = static_dir if static_dir is not None else Path(__file__).parent / "_static"
+
+    @app.get("/favicon.svg", include_in_schema=False)
+    def favicon() -> FileResponse:
+        icon = static_dir / "favicon.svg"
+        if not icon.exists():
+            raise HTTPException(
+                status_code=404, detail="favicon not built — see frontend/README.md"
+            )
+        return FileResponse(icon, media_type="image/svg+xml")
 
     @app.get("/widget.js", include_in_schema=False)
     def widget_js() -> FileResponse:

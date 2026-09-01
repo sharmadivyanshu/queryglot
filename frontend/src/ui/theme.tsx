@@ -13,9 +13,14 @@ const STORAGE_KEY = 'qg-theme'
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function getInitialTheme(): Theme {
-  const stored = window.localStorage.getItem(STORAGE_KEY)
-  if (stored === 'light' || stored === 'dark') {
-    return stored
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    if (stored === 'light' || stored === 'dark') {
+      return stored
+    }
+  } catch {
+    // localStorage may be blocked (private browsing, disabled storage) —
+    // fall through to the media-query default.
   }
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
@@ -25,7 +30,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     document.documentElement.className = theme === 'dark' ? 'qg-dark' : 'qg-light'
-    window.localStorage.setItem(STORAGE_KEY, theme)
+    try {
+      window.localStorage.setItem(STORAGE_KEY, theme)
+    } catch {
+      // Blocked storage is non-fatal — theme still applies for this session.
+    }
   }, [theme])
 
   const value = useMemo<ThemeContextValue>(

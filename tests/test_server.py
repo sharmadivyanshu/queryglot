@@ -103,14 +103,22 @@ def test_cors_preflight_works_with_bearer_token(monkeypatch):
     assert status_response.status_code == 401
 
 
-def test_widget_js_404_hints_when_unbuilt():
-    response = client_for().get("/widget.js")
+def test_widget_js_404_hints_when_unbuilt(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    app = create_app(engine, static_dir=empty)
+    response = TestClient(app).get("/widget.js")
     assert response.status_code == 404
     assert "frontend" in response.json()["detail"]
 
 
-def test_root_404_hints_when_unbuilt():
-    response = client_for().get("/")
+def test_root_404_hints_when_unbuilt(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    app = create_app(engine, static_dir=empty)
+    response = TestClient(app).get("/")
     assert response.status_code == 404
     assert "frontend" in response.json()["detail"]
 

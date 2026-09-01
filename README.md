@@ -98,8 +98,6 @@ MCP server. Drop one script tag on any page:
 - `data-token` — bearer token, only needed when the server sets `QUERYGLOT_SERVE_TOKEN`.
 - `data-backend` — pins searches to one backend instead of auto-routing.
 
-*(screenshot: the floating Ask pill and search panel, bottom-right of a host page)*
-
 See `frontend/README.md` for the build (`npm run build:all`) that packages
 the widget and playground into the Python wheel.
 

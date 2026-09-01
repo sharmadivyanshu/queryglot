@@ -196,7 +196,9 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: '9px 10px',
+                  padding: '7px 10px',
+                  minHeight: 44,
+                  boxSizing: 'border-box',
                   borderRadius: 9,
                   background: i === 0 ? 'var(--qg-surface2)' : 'transparent',
                   border: 'none',
@@ -251,7 +253,7 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
               title="Nothing in your schema answers this"
               message={state.answer.reason}
               chipText="refused to guess · 0 queries run"
-              suggestions={suggestions}
+              suggestions={state.suggestions}
               onAsk={submit}
             />
           </div>
@@ -262,7 +264,11 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
             <AbstainCard
               title="Couldn't produce a validated query"
               message={state.answer.reason}
-              chipText={`failed after ${state.answer.attempts} attempt${state.answer.attempts === 1 ? '' : 's'}`}
+              chipText={
+                state.answer.attempts === 0
+                  ? "Couldn't reach the model — nothing was run"
+                  : `failed after ${state.answer.attempts} attempt${state.answer.attempts === 1 ? '' : 's'}`
+              }
               onAsk={submit}
             />
           </div>

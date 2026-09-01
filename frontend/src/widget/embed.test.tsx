@@ -1,5 +1,14 @@
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
+import { waitFor } from '@testing-library/react'
 import { parseConfig, mount } from './embed'
+
+const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!
+
+function typeAndSubmit(input: HTMLInputElement, value: string) {
+  nativeInputValueSetter.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+}
 
 afterEach(() => { document.getElementById('queryglot-root')?.remove() })
 
@@ -39,4 +48,43 @@ test('cmd+k opens the panel, esc closes it', async () => {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
   await new Promise(requestAnimationFrame)
   expect(root.textContent).not.toContain('refuses to guess')
+})
+
+test('cmd+k while already open resets an answered panel back to idle and refocuses the input', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        outcome: 'answered',
+        backend: 'prometheus',
+        query: 'up',
+        result: [],
+        reason: '',
+        schema_used: ['up'],
+        attempts: 1,
+        elapsed_ms: 900,
+      }),
+    })),
+  )
+
+  mount({ api: 'http://x', theme: 'light' })
+  const root = document.getElementById('queryglot-root')!.shadowRoot!
+
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
+  await new Promise(requestAnimationFrame)
+
+  const input = root.querySelector('input') as HTMLInputElement
+  typeAndSubmit(input, 'up')
+  await waitFor(() => expect(root.textContent).toContain('grounded in'))
+
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
+  await new Promise(requestAnimationFrame)
+
+  expect(root.textContent).toContain('refuses to guess')
+  const refocused = root.querySelector('input') as HTMLInputElement
+  await waitFor(() => expect(root.activeElement).toBe(refocused))
+
+  vi.unstubAllGlobals()
 })

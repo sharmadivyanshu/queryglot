@@ -98,10 +98,13 @@ const pillStyle: CSSProperties = {
   bottom: 28,
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: 8,
   background: 'var(--qg-accent)',
   borderRadius: 999,
-  padding: '11px 18px',
+  padding: '9px 18px',
+  minHeight: 44,
+  boxSizing: 'border-box',
   boxShadow: 'var(--qg-shadow)',
   border: 'none',
   cursor: 'pointer',
@@ -121,6 +124,9 @@ function Widget({ config }: { config: WidgetConfig }) {
   const client = useMemo(() => createClient({ api: config.api, token: config.token }), [config.api, config.token])
   const { state, ask, reset } = useAsk(client, config.backend)
   const [open, setOpen] = useState(false)
+  // Bumped whenever ⌘K resets an already-open panel back to idle, so Panel
+  // remounts with a clean input instead of keeping the just-answered text.
+  const [panelKey, setPanelKey] = useState(0)
   const prefersDark = usePrefersDark()
   const scopeClass = resolveScopeClass(config.theme, prefersDark)
 
@@ -137,7 +143,15 @@ function Widget({ config }: { config: WidgetConfig }) {
     function handleKeydown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        setOpen(true)
+        if (open) {
+          // ⌘K while already open is not a dead hint: it clears whatever
+          // answer/abstain/thinking is showing and hands focus straight
+          // back to a fresh input, same as closing and reopening would.
+          reset()
+          setPanelKey((key) => key + 1)
+        } else {
+          setOpen(true)
+        }
         return
       }
       if (!open) return
@@ -151,13 +165,13 @@ function Widget({ config }: { config: WidgetConfig }) {
     }
     document.addEventListener('keydown', handleKeydown)
     return () => document.removeEventListener('keydown', handleKeydown)
-  }, [open, close])
+  }, [open, close, reset])
 
   return (
     <div ref={wrapperRef} className={scopeClass}>
       {open && (
         <div style={panelContainerStyle}>
-          <Panel state={state} onAsk={ask} onClose={close} suggestions={DEFAULT_SUGGESTIONS} />
+          <Panel key={panelKey} state={state} onAsk={ask} onClose={close} suggestions={DEFAULT_SUGGESTIONS} />
         </div>
       )}
       <button ref={pillRef} type="button" onClick={() => setOpen(true)} aria-label="Ask queryglot" style={pillStyle}>
