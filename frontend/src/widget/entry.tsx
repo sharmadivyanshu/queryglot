@@ -1,5 +1,3 @@
-function mount(): void {
-  // Placeholder — widget mount/render logic lands in a later task.
-}
+import { mount, parseConfig } from './embed'
 
-mount()
+mount(parseConfig(document.currentScript as HTMLScriptElement))
