@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>queryglot — Discover restyle mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  .qg-light {
+    --qg-accent: #6366F1; --qg-on-accent: #FFFFFF;
+    --qg-bg: #FAFAF8; --qg-host: #EFEEEA; --qg-host-soft: #E7E6E1;
+    --qg-surface: #FFFFFF; --qg-surface2: #F4F4F2;
+    --qg-border: #E2E1DC; --qg-border-soft: #ECEBE6;
+    --qg-text: #1C1917; --qg-text-mut: #57534E; --qg-text-faint: #A8A29E;
+    --qg-code-bg: #F6F6FB; --qg-code-text: #3730A3; --qg-code-kw: #6D28D9;
+    --qg-kbd-bg: #F4F4F2; --qg-kbd-border: #D6D3CD; --qg-kbd-text: #78716C;
+    --qg-ok-bg: rgba(99,102,241,0.08); --qg-ok-border: rgba(99,102,241,0.3);
+    --qg-shadow: 0 20px 50px rgba(28,25,23,0.14);
+    --t-counter: #0284C7; --t-counter-bg: rgba(2,132,199,0.10);
+    --t-gauge: #059669; --t-gauge-bg: rgba(5,150,105,0.10);
+    --t-hist: #7C3AED; --t-hist-bg: rgba(124,58,237,0.10);
+    --t-summ: #D97706; --t-summ-bg: rgba(217,119,6,0.10);
+    --bar: #6366F1; --bar-soft: rgba(99,102,241,0.24);
+  }
+  .qg-dark {
+    --qg-accent: #6366F1; --qg-on-accent: #FFFFFF;
+    --qg-bg: #101014; --qg-host: #18181E; --qg-host-soft: #1E1E26;
+    --qg-surface: #17171C; --qg-surface2: #1E1E25;
+    --qg-border: #2A2A33; --qg-border-soft: #232329;
+    --qg-text: #F4F4F5; --qg-text-mut: #A1A1AA; --qg-text-faint: #71717C;
+    --qg-code-bg: #0C0C10; --qg-code-text: #C7D2FE; --qg-code-kw: #A5B4FC;
+    --qg-kbd-bg: #1E1E25; --qg-kbd-border: #33333D; --qg-kbd-text: #8B8B96;
+    --qg-ok-bg: rgba(129,140,248,0.13); --qg-ok-border: rgba(129,140,248,0.35);
+    --qg-shadow: 0 20px 50px rgba(0,0,0,0.55);
+    --t-counter: #38BDF8; --t-counter-bg: rgba(56,189,248,0.13);
+    --t-gauge: #34D399; --t-gauge-bg: rgba(52,211,153,0.13);
+    --t-hist: #A78BFA; --t-hist-bg: rgba(167,139,250,0.14);
+    --t-summ: #FBBF24; --t-summ-bg: rgba(251,191,36,0.13);
+    --bar: #818CF8; --bar-soft: rgba(129,140,248,0.28);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0A0A0C; font-family: 'Instrument Sans', system-ui, sans-serif; padding: 48px 32px; display: flex; flex-direction: column; gap: 56px; align-items: center; }
+  .frame-label { color: #8B8B96; font: 500 12px/1 'IBM Plex Mono', monospace; letter-spacing: 0.1em; margin-bottom: 14px; text-transform: uppercase; }
+  .frame { width: 1440px; border-radius: 18px; overflow: hidden; border: 1px solid #26262E; }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  .disp { font-family: 'Bricolage Grotesque', 'Instrument Sans', sans-serif; }
+
+  .page { background: var(--qg-bg); color: var(--qg-text); display: flex; flex-direction: column; }
+  /* top bar */
+  .top { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--qg-border-soft); background: var(--qg-surface); }
+  .brand { display: flex; align-items: center; gap: 10px; font: 600 17px/1 'Bricolage Grotesque', sans-serif; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--qg-border); color: var(--qg-text-mut); background: var(--qg-surface2); }
+  .pill.ok { border-color: var(--qg-ok-border); background: var(--qg-ok-bg); color: var(--qg-accent); }
+  .dot { width: 7px; height: 7px; border-radius: 99px; background: var(--qg-accent); }
+  .spacer { flex: 1; }
+  /* time controls (phase B) */
+  .timectl { display: inline-flex; align-items: stretch; border: 1px solid var(--qg-border); border-radius: 10px; overflow: hidden; background: var(--qg-surface2); }
+  .timectl .seg { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; font-size: 12.5px; font-weight: 500; color: var(--qg-text); }
+  .timectl .seg + .seg { border-left: 1px solid var(--qg-border); }
+  .timectl .seg.icon { color: var(--qg-text-mut); padding: 7px 11px; }
+  .timectl .seg.refresh { color: var(--qg-accent); }
+  .caret { color: var(--qg-text-faint); font-size: 10px; }
+
+  .cols { display: flex; min-height: 760px; }
+  /* ---------- sidebar ---------- */
+  .rail { width: 316px; border-right: 1px solid var(--qg-border-soft); padding: 18px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--qg-bg); }
+  .rail-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px; }
+  .rail-title { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: var(--qg-text-faint); }
+  .count-pill { font: 500 11px/1 'IBM Plex Mono', monospace; color: var(--qg-text-mut); background: var(--qg-surface2); border: 1px solid var(--qg-border-soft); border-radius: 999px; padding: 3px 9px; }
+  .filter { display: flex; align-items: center; gap: 8px; border: 1px solid var(--qg-border); border-radius: 10px; padding: 9px 12px; color: var(--qg-text-faint); font-size: 13px; background: var(--qg-surface); }
+  .tfilters { display: flex; gap: 6px; padding: 0 2px; }
+  .tf { font: 500 10.5px/1 'IBM Plex Mono', monospace; padding: 4px 8px; border-radius: 7px; border: 1px solid var(--qg-border-soft); color: var(--qg-text-mut); background: var(--qg-surface); }
+  .tf.on { border-color: var(--qg-ok-border); background: var(--qg-ok-bg); color: var(--qg-accent); }
+  .group { display: flex; flex-direction: column; }
+  .group-h { display: flex; align-items: center; gap: 7px; padding: 8px 6px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: var(--qg-text-faint); }
+  .group-h .n { font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: var(--qg-text-faint); letter-spacing: 0; }
+  .chev { font-size: 9px; color: var(--qg-text-faint); }
+  .frow { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 8px; }
+  .frow:hover { background: var(--qg-surface2); }
+  .frow .name { font: 400 12px/1.2 'IBM Plex Mono', monospace; color: var(--qg-text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .frow.hot .name { color: var(--qg-text); }
+  .tb { flex: none; width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font: 600 9.5px/1 'IBM Plex Mono', monospace; }
+  .tb.c { color: var(--t-counter); background: var(--t-counter-bg); }
+  .tb.g { color: var(--t-gauge); background: var(--t-gauge-bg); }
+  .tb.h { color: var(--t-hist); background: var(--t-hist-bg); }
+  .tb.s { color: var(--t-summ); background: var(--t-summ-bg); }
+  .expand { margin: 3px 6px 6px 6px; border: 1px solid var(--qg-border); border-radius: 11px; background: var(--qg-surface); padding: 11px 12px; display: flex; flex-direction: column; gap: 9px; }
+  .expand .nm { font: 500 12px/1.35 'IBM Plex Mono', monospace; color: var(--qg-text); word-break: break-all; }
+  .lchips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .lchip { font: 400 10.5px/1 'IBM Plex Mono', monospace; color: var(--qg-text-mut); background: var(--qg-surface2); border: 1px solid var(--qg-border-soft); padding: 3px 8px; border-radius: 999px; }
+  .help { font-size: 11.5px; line-height: 1.5; color: var(--qg-text-faint); }
+  .asklink { font-size: 11.5px; font-weight: 500; color: var(--qg-accent); display: inline-flex; gap: 6px; align-items: center; }
+  .more { font-size: 11.5px; color: var(--qg-text-faint); padding: 8px 6px 0; }
+
+  /* ---------- main ---------- */
+  .main { flex: 1; padding: 40px 48px; display: flex; gap: 32px; }
+  .askcol { width: 620px; display: flex; flex-direction: column; gap: 18px; }
+  h1 { font: 600 30px/1.2 'Bricolage Grotesque', sans-serif; letter-spacing: -0.01em; }
+  .sub { font-size: 14px; color: var(--qg-text-mut); line-height: 1.55; }
+  .panel { background: var(--qg-surface); border: 1px solid var(--qg-border); border-radius: 14px; box-shadow: var(--qg-shadow); overflow: hidden; }
+  .phead { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--qg-border-soft); }
+  .phead .q { font-size: 14px; flex: 1; }
+  .kbd { font: 400 10px/1 'IBM Plex Mono', monospace; border: 1px solid var(--qg-kbd-border); background: var(--qg-kbd-bg); color: var(--qg-kbd-text); border-radius: 5px; padding: 2px 6px; }
+  .iconbtn { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--qg-border); background: var(--qg-surface2); display: inline-flex; align-items: center; justify-content: center; color: var(--qg-text-mut); }
+  .pbody { padding: 14px 16px; display: flex; flex-direction: column; gap: 13px; }
+  .lead { font-size: 13px; line-height: 1.55; }
+  .slabel { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: var(--qg-text-faint); }
+  .codeblk { background: var(--qg-code-bg); border-radius: 10px; padding: 12px 14px; font: 400 12px/1.6 'IBM Plex Mono', monospace; color: var(--qg-code-text); }
+  .codeblk .kw { color: var(--qg-code-kw); }
+  .valchip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--qg-accent); border: 1px solid var(--qg-ok-border); background: var(--qg-ok-bg); border-radius: 999px; padding: 3px 10px; }
+  .qrow { display: flex; align-items: center; gap: 8px; }
+  /* bar chart */
+  .bchart { display: flex; flex-direction: column; gap: 7px; }
+  .brow { display: grid; grid-template-columns: 168px 1fr 64px; align-items: center; gap: 10px; }
+  .brow .bl { font: 400 11.5px/1.2 'IBM Plex Mono', monospace; color: var(--qg-text-mut); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brow .track { height: 16px; border-radius: 5px; background: var(--qg-surface2); overflow: hidden; }
+  .brow .fill { height: 100%; border-radius: 5px; background: var(--bar-soft); }
+  .brow.max .fill { background: var(--bar); }
+  .brow .bv { font: 500 11.5px/1 'IBM Plex Mono', monospace; color: var(--qg-text-mut); }
+  .brow.max .bv { color: var(--qg-accent); font-weight: 600; }
+  .viewtog { display: inline-flex; border: 1px solid var(--qg-border-soft); border-radius: 8px; overflow: hidden; margin-left: auto; }
+  .viewtog span { font-size: 10.5px; font-weight: 500; padding: 4px 10px; color: var(--qg-text-faint); }
+  .viewtog span.on { background: var(--qg-surface2); color: var(--qg-text); }
+  .meta { font-size: 11px; color: var(--qg-text-faint); }
+  .pfoot { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--qg-border-soft); font-size: 11px; color: var(--qg-text-faint); }
+  /* trace card */
+  .trace { width: 360px; align-self: flex-start; border: 1px solid var(--qg-border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: var(--qg-surface); }
+  .trow { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+  .trow .l { display: flex; gap: 10px; align-items: center; color: var(--qg-text); }
+  .trow .v { font: 400 11.5px/1 'IBM Plex Mono', monospace; color: var(--qg-text-faint); }
+  .ring { width: 13px; height: 13px; border-radius: 99px; border: 2px solid var(--qg-ok-border); }
+  .tnote { font-size: 12px; line-height: 1.55; color: var(--qg-text-faint); }
+  /* histogram (phase B) */
+  .hist { display: flex; flex-direction: column; gap: 6px; }
+  .histbars { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: 4px 2px 0; border-bottom: 1px solid var(--qg-border-soft); }
+  .hb { flex: 1; border-radius: 3px 3px 0 0; background: var(--bar-soft); }
+  .hb.hot { background: var(--bar); }
+  .hx { display: flex; justify-content: space-between; font: 400 10px/1 'IBM Plex Mono', monospace; color: var(--qg-text-faint); padding: 4px 2px 0; }
+  .hnote { font-size: 10.5px; color: var(--qg-text-faint); }
+  .tooltip { position: relative; }
+  .tip { position: absolute; top: -66px; left: 58%; background: var(--qg-surface); border: 1px solid var(--qg-border); border-radius: 9px; padding: 8px 11px; box-shadow: var(--qg-shadow); font: 400 10.5px/1.5 'IBM Plex Mono', monospace; color: var(--qg-text-mut); white-space: nowrap; }
+  .tip b { color: var(--qg-text); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ============ KEYFRAME 1 — PHASE A · DARK ============ -->
+<div>
+  <div class="frame-label">Keyframe 1 · Phase A — sidebar restyle + result bar chart + refresh (dark)</div>
+  <div class="frame qg-dark">
+    <div class="page">
+      <div class="top">
+        <div class="brand"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="#6366F1" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="#6366F1"/></svg>queryglot <span class="pill" style="margin-left:4px">playground</span></div>
+        <div class="spacer"></div>
+        <span class="pill"><span class="dot" style="background:#34D399"></span>prometheus</span>
+        <span class="pill ok">connected · 230 metrics</span>
+        <span class="pill" style="gap:10px">🌙&nbsp;·&nbsp;☀️</span>
+      </div>
+      <div class="cols">
+        <!-- sidebar -->
+        <div class="rail">
+          <div class="rail-head"><span class="rail-title">YOUR SCHEMA</span><span class="count-pill">230 fields</span></div>
+          <div class="filter"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>filter metrics…</div>
+          <div class="tfilters">
+            <span class="tf on">all 230</span><span class="tf">C 96</span><span class="tf">G 108</span><span class="tf">H 18</span><span class="tf">S 8</span>
+          </div>
+
+          <div class="group">
+            <div class="group-h"><span class="chev">▾</span>IN LAST ANSWER <span class="n">8</span></div>
+            <div class="frow hot"><span class="tb h">H</span><span class="name">prometheus_http_request_duration_seconds</span></div>
+            <div class="expand">
+              <div class="nm">prometheus_http_request_duration_seconds</div>
+              <div class="lchips"><span class="lchip">handler</span><span class="lchip">instance</span><span class="lchip">job</span><span class="lchip">le</span></div>
+              <div class="help">Histogram of latencies for HTTP requests.</div>
+              <span class="asklink">↳ ask about this metric</span>
+            </div>
+            <div class="frow hot"><span class="tb c">C</span><span class="name">prometheus_http_requests_total</span></div>
+            <div class="frow hot"><span class="tb s">S</span><span class="name">prometheus_rule_evaluation_duration_seconds</span></div>
+          </div>
+
+          <div class="group">
+            <div class="group-h"><span class="chev">▾</span>prometheus_* <span class="n">42</span></div>
+            <div class="frow"><span class="tb g">G</span><span class="name">prometheus_build_info</span></div>
+            <div class="frow"><span class="tb c">C</span><span class="name">prometheus_engine_queries_total</span></div>
+            <div class="frow"><span class="tb h">H</span><span class="name">prometheus_engine_query_duration_seconds</span></div>
+            <div class="frow"><span class="tb g">G</span><span class="name">prometheus_ready</span></div>
+          </div>
+
+          <div class="group">
+            <div class="group-h"><span class="chev">▸</span>go_* <span class="n">118</span></div>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▸</span>process_* <span class="n">14</span></div>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▸</span>net_conntrack_* <span class="n">8</span></div>
+          </div>
+          <div class="more">+ 40 more, introspected live</div>
+        </div>
+
+        <!-- main -->
+        <div class="main">
+          <div class="askcol">
+            <h1>Your metrics, answerable in plain language.</h1>
+            <div class="sub">Every answer shows the exact validated query it ran. Off-schema questions get an honest refusal.</div>
+            <div class="panel">
+              <div class="phead">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#71717C" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="#71717C" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <span class="q">slowest routes today</span>
+                <span class="iconbtn" title="re-run"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v2.6h-2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <span class="kbd">⌘K</span>
+              </div>
+              <div class="pbody">
+                <div class="lead">The slowest routes today are /api/v1/series with 26.842, /metrics with 0.666, /api/v1/metadata with 0.105.</div>
+                <div class="qrow"><span class="slabel">RAN THIS EXACT QUERY</span><span class="valchip">✓ validated by your server</span></div>
+                <div class="codeblk">topk(5, <span class="kw">sum by</span> (handler) (<span class="kw">rate</span>(prometheus_http_request_duration_seconds_bucket[5m])))</div>
+                <div class="qrow"><span class="slabel">RESULT</span>
+                  <span class="viewtog"><span class="on">chart</span><span>rows</span></span>
+                </div>
+                <div class="bchart">
+                  <div class="brow max"><span class="bl">/api/v1/series</span><span class="track"><span class="fill" style="width:100%;display:block"></span></span><span class="bv">26.8</span></div>
+                  <div class="brow"><span class="bl">/metrics</span><span class="track"><span class="fill" style="width:14%;display:block"></span></span><span class="bv">0.667</span></div>
+                  <div class="brow"><span class="bl">/api/v1/metadata</span><span class="track"><span class="fill" style="width:6%;display:block"></span></span><span class="bv">0.105</span></div>
+                  <div class="brow"><span class="bl">/api/v1/format_query</span><span class="track"><span class="fill" style="width:3.5%;display:block"></span></span><span class="bv">0.0351</span></div>
+                  <div class="brow"><span class="bl">/api/v1/query</span><span class="track"><span class="fill" style="width:3.5%;display:block"></span></span><span class="bv">0.0351</span></div>
+                </div>
+                <span class="meta">grounded in 8 schema items · 1 attempt · 2.8 s · <span style="color:var(--qg-accent)">cached 42s ago</span></span>
+              </div>
+              <div class="pfoot"><span><span class="kbd">enter</span> ask</span><span><span class="kbd">esc</span> close</span><span class="spacer"></span><span class="disp" style="font-weight:600">queryglot</span></div>
+            </div>
+          </div>
+          <div class="trace">
+            <span class="slabel">HOW IT GOT THERE</span>
+            <div class="trow"><span class="l"><span class="ring"></span>retrieve</span><span class="v">8 items</span></div>
+            <div class="trow"><span class="l"><span class="ring"></span>compile</span><span class="v">1 attempt</span></div>
+            <div class="trow"><span class="l"><span class="ring"></span>validate</span><span class="v">server parser</span></div>
+            <div class="trow"><span class="l"><span class="ring"></span>execute</span><span class="v">2828 ms</span></div>
+            <div class="tnote">The model only wrote syntax. Your schema came from live introspection; your server's parser had the final word.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KEYFRAME 2 — PHASE B · DARK ============ -->
+<div>
+  <div class="frame-label">Keyframe 2 · Phase B — time-range picker + range histogram (dark)</div>
+  <div class="frame qg-dark">
+    <div class="page">
+      <div class="top">
+        <div class="brand"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="#6366F1" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="#6366F1"/></svg>queryglot <span class="pill" style="margin-left:4px">playground</span></div>
+        <div class="spacer"></div>
+        <span class="timectl">
+          <span class="seg icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+          <span class="seg">Last 30 minutes <span class="caret">▾</span></span>
+          <span class="seg refresh"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v2.6h-2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>&nbsp;Refresh</span>
+        </span>
+        <span class="pill"><span class="dot" style="background:#34D399"></span>prometheus</span>
+        <span class="pill ok">connected · 230 metrics</span>
+      </div>
+      <div class="cols">
+        <div class="rail">
+          <div class="rail-head"><span class="rail-title">YOUR SCHEMA</span><span class="count-pill">230 fields</span></div>
+          <div class="filter"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>filter metrics…</div>
+          <div class="tfilters">
+            <span class="tf on">all 230</span><span class="tf">C 96</span><span class="tf">G 108</span><span class="tf">H 18</span><span class="tf">S 8</span>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▾</span>IN LAST ANSWER <span class="n">8</span></div>
+            <div class="frow hot"><span class="tb c">C</span><span class="name">prometheus_http_requests_total</span></div>
+            <div class="frow hot"><span class="tb h">H</span><span class="name">prometheus_http_request_duration_seconds</span></div>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▸</span>prometheus_* <span class="n">42</span></div>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▸</span>go_* <span class="n">118</span></div>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▸</span>process_* <span class="n">14</span></div>
+          </div>
+          <div class="more">+ 48 more, introspected live</div>
+        </div>
+        <div class="main">
+          <div class="askcol">
+            <h1>Your metrics, answerable in plain language.</h1>
+            <div class="sub">The time window applies to every question — “over the last 30 minutes” is implied.</div>
+            <div class="panel">
+              <div class="phead">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#71717C" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="#71717C" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <span class="q">request rate to the API</span>
+                <span class="kbd">⌘K</span>
+              </div>
+              <div class="pbody">
+                <div class="lead">Requests peaked at 84.2 per second at 01:06 and are at 31.5 per second now.</div>
+                <div class="qrow"><span class="slabel">RAN THIS EXACT QUERY</span><span class="valchip">✓ validated by your server</span></div>
+                <div class="codeblk"><span class="kw">sum</span>(<span class="kw">rate</span>(prometheus_http_requests_total[1m]))&nbsp;&nbsp;<span style="color:var(--qg-text-faint)">· range 00:52 → 01:22, step 30s</span></div>
+                <div class="qrow"><span class="slabel">RESULT · OVER TIME</span>
+                  <span class="viewtog"><span class="on">chart</span><span>rows</span></span>
+                </div>
+                <div class="hist tooltip">
+                  <div class="tip"><b>84.2 req/s</b><br>01:06:30</div>
+                  <div class="histbars">
+                    <span class="hb" style="height:22%"></span><span class="hb" style="height:31%"></span><span class="hb" style="height:64%"></span><span class="hb" style="height:52%"></span><span class="hb" style="height:18%"></span><span class="hb" style="height:9%"></span><span class="hb" style="height:8%"></span><span class="hb" style="height:12%"></span><span class="hb" style="height:46%"></span><span class="hb" style="height:71%"></span><span class="hb" style="height:58%"></span><span class="hb" style="height:14%"></span><span class="hb" style="height:8%"></span><span class="hb" style="height:7%"></span><span class="hb" style="height:11%"></span><span class="hb" style="height:9%"></span><span class="hb" style="height:38%"></span><span class="hb hot" style="height:100%"></span><span class="hb" style="height:76%"></span><span class="hb" style="height:30%"></span><span class="hb" style="height:12%"></span><span class="hb" style="height:9%"></span><span class="hb" style="height:8%"></span><span class="hb" style="height:10%"></span><span class="hb" style="height:13%"></span><span class="hb" style="height:24%"></span><span class="hb" style="height:41%"></span><span class="hb" style="height:37%"></span><span class="hb" style="height:29%"></span><span class="hb" style="height:33%"></span>
+                  </div>
+                  <div class="hx"><span>00:52</span><span>01:00</span><span>01:07</span><span>01:15</span><span>01:22</span></div>
+                  <div class="hnote">interval: 30 s · 60 points · peak highlighted</div>
+                </div>
+                <span class="meta">grounded in 8 schema items · 1 attempt · 1.9 s</span>
+              </div>
+              <div class="pfoot"><span><span class="kbd">enter</span> ask</span><span><span class="kbd">esc</span> close</span><span class="spacer"></span><span class="disp" style="font-weight:600">queryglot</span></div>
+            </div>
+          </div>
+          <div class="trace">
+            <span class="slabel">HOW IT GOT THERE</span>
+            <div class="trow"><span class="l"><span class="ring"></span>retrieve</span><span class="v">8 items</span></div>
+            <div class="trow"><span class="l"><span class="ring"></span>compile</span><span class="v">1 attempt</span></div>
+            <div class="trow"><span class="l"><span class="ring"></span>validate</span><span class="v">server parser</span></div>
+            <div class="trow"><span class="l"><span class="ring"></span>execute</span><span class="v">query_range · 30 min</span></div>
+            <div class="tnote">The window came from the picker, not the model — the model wrote the expression, the range was applied by the engine.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KEYFRAME 3 — PHASE A · LIGHT ============ -->
+<div>
+  <div class="frame-label">Keyframe 3 · Phase A — light mode</div>
+  <div class="frame qg-light">
+    <div class="page">
+      <div class="top">
+        <div class="brand"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2 L17 6 V14 L10 18 L3 14 V6 Z" stroke="#6366F1" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="#6366F1"/></svg>queryglot <span class="pill" style="margin-left:4px">playground</span></div>
+        <div class="spacer"></div>
+        <span class="pill"><span class="dot" style="background:#059669"></span>prometheus</span>
+        <span class="pill ok">connected · 230 metrics</span>
+      </div>
+      <div class="cols" style="min-height:620px">
+        <div class="rail">
+          <div class="rail-head"><span class="rail-title">YOUR SCHEMA</span><span class="count-pill">230 fields</span></div>
+          <div class="filter"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>filter metrics…</div>
+          <div class="tfilters">
+            <span class="tf on">all 230</span><span class="tf">C 96</span><span class="tf">G 108</span><span class="tf">H 18</span><span class="tf">S 8</span>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▾</span>IN LAST ANSWER <span class="n">8</span></div>
+            <div class="frow hot"><span class="tb h">H</span><span class="name">prometheus_http_request_duration_seconds</span></div>
+            <div class="expand">
+              <div class="nm">prometheus_http_request_duration_seconds</div>
+              <div class="lchips"><span class="lchip">handler</span><span class="lchip">instance</span><span class="lchip">job</span><span class="lchip">le</span></div>
+              <div class="help">Histogram of latencies for HTTP requests.</div>
+              <span class="asklink">↳ ask about this metric</span>
+            </div>
+            <div class="frow hot"><span class="tb c">C</span><span class="name">prometheus_http_requests_total</span></div>
+          </div>
+          <div class="group">
+            <div class="group-h"><span class="chev">▾</span>prometheus_* <span class="n">42</span></div>
+            <div class="frow"><span class="tb g">G</span><span class="name">prometheus_build_info</span></div>
+            <div class="frow"><span class="tb c">C</span><span class="name">prometheus_engine_queries_total</span></div>
+          </div>
+          <div class="group"><div class="group-h"><span class="chev">▸</span>go_* <span class="n">118</span></div></div>
+          <div class="group"><div class="group-h"><span class="chev">▸</span>process_* <span class="n">14</span></div></div>
+          <div class="more">+ 48 more, introspected live</div>
+        </div>
+        <div class="main">
+          <div class="askcol">
+            <div class="panel">
+              <div class="phead">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#A8A29E" stroke-width="1.5"/><path d="M10.5 10.5 L14 14" stroke="#A8A29E" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <span class="q">slowest routes today</span>
+                <span class="iconbtn"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v2.6h-2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <span class="kbd">⌘K</span>
+              </div>
+              <div class="pbody">
+                <div class="lead">The slowest routes today are /api/v1/series with 26.842, /metrics with 0.666, /api/v1/metadata with 0.105.</div>
+                <div class="qrow"><span class="slabel">RAN THIS EXACT QUERY</span><span class="valchip">✓ validated by your server</span></div>
+                <div class="codeblk">topk(5, <span class="kw">sum by</span> (handler) (<span class="kw">rate</span>(prometheus_http_request_duration_seconds_bucket[5m])))</div>
+                <div class="qrow"><span class="slabel">RESULT</span><span class="viewtog"><span class="on">chart</span><span>rows</span></span></div>
+                <div class="bchart">
+                  <div class="brow max"><span class="bl">/api/v1/series</span><span class="track"><span class="fill" style="width:100%;display:block"></span></span><span class="bv">26.8</span></div>
+                  <div class="brow"><span class="bl">/metrics</span><span class="track"><span class="fill" style="width:14%;display:block"></span></span><span class="bv">0.667</span></div>
+                  <div class="brow"><span class="bl">/api/v1/metadata</span><span class="track"><span class="fill" style="width:6%;display:block"></span></span><span class="bv">0.105</span></div>
+                </div>
+                <span class="meta">grounded in 8 schema items · 1 attempt · 2.8 s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
