@@ -10,6 +10,7 @@ like mcp_server.py.
 from __future__ import annotations
 
 import hmac
+import json
 import logging
 import os
 import time
@@ -22,6 +23,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from .engine import Engine
+from .llm import LLM, OpenAICompatibleLLM
 
 logger = logging.getLogger("queryglot.server")
 
@@ -31,10 +33,28 @@ class SearchRequest(BaseModel):
     backend: str | None = None
 
 
+class SummaryRequest(BaseModel):
+    question: str
+    query: str
+    result: object = None
+
+
+SUMMARY_SYSTEM = (
+    "You summarize observability query results conversationally, in one or "
+    "two short sentences. Use ONLY numbers and label values present in the "
+    "provided data — never invent, compute, or speculate, and never add "
+    "units (%, ms, s) that are not in the data. No advice."
+)
+
+CACHE_TTL_SECONDS = 60.0
+CACHE_MAX_ENTRIES = 256
+
+
 def create_app(
     engine: Engine,
     cors_origins: list[str] | None = None,
     static_dir: Path | None = None,
+    summary_llm: LLM | None = None,
 ) -> FastAPI:
     app = FastAPI(title="queryglot", version=__version__)
     if not engine.catalog.items:
@@ -81,6 +101,7 @@ def create_app(
 
     @app.post("/api/refresh")
     def refresh() -> dict:
+        search_cache.clear()
         try:
             return engine.refresh_schema()
         except Exception as exc:
@@ -95,10 +116,19 @@ def create_app(
         counts = {name: len(engine.catalog.by_backend(name)) for name in engine.backends}
         return {"backends": counts, "version": __version__}
 
+    search_cache: dict[tuple[str, str], tuple[float, dict]] = {}
+
+    def cache_key(request: SearchRequest) -> tuple[str, str]:
+        return (" ".join(request.question.lower().split()), request.backend or "")
+
     @app.post("/api/search")
     def search(request: SearchRequest) -> dict:
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="question must be non-empty")
+        key = cache_key(request)
+        hit = search_cache.get(key)
+        if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
+            return {**hit[1], "cached": True}
         started = time.monotonic()
         try:
             answer = engine.search(request.question, backend=request.backend)
@@ -115,6 +145,10 @@ def create_app(
                 "attempts": 0,
             }
         payload["elapsed_ms"] = int((time.monotonic() - started) * 1000)
+        if payload["outcome"] == "answered":
+            if len(search_cache) >= CACHE_MAX_ENTRIES:
+                search_cache.clear()
+            search_cache[key] = (time.monotonic(), payload)
         return payload
 
     @app.get("/api/schema")
@@ -135,6 +169,24 @@ def create_app(
                 status_code=404, detail="favicon not built — see frontend/README.md"
             )
         return FileResponse(icon, media_type="image/svg+xml")
+
+    @app.post("/api/summary")
+    def summary(request: SummaryRequest) -> dict:
+        if summary_llm is None:
+            return {"summary": ""}
+        data = json.dumps(request.result, default=str)[:1500]
+        prompt = (
+            f"Question: {request.question}\n"
+            f"Query that ran: {request.query}\n"
+            f"Result data: {data}\n"
+            "Conversational summary:"
+        )
+        try:
+            text = summary_llm.complete(SUMMARY_SYSTEM, prompt).strip()
+        except Exception:
+            logger.exception("summary failed")
+            return {"summary": ""}
+        return {"summary": text}
 
     @app.get("/widget.js", include_in_schema=False)
     def widget_js() -> FileResponse:
@@ -203,7 +255,11 @@ def main() -> None:
         o.strip() for o in os.getenv("QUERYGLOT_CORS_ORIGINS", "").split(",") if o.strip()
     ]
     uvicorn.run(
-        create_app(Engine(backends), cors_origins=origins or None),
+        create_app(
+            Engine(backends),
+            cors_origins=origins or None,
+            summary_llm=OpenAICompatibleLLM(max_tokens=80),
+        ),
         host=args.host,
         port=args.port,
     )

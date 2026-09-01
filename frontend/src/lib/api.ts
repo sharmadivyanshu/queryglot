@@ -22,6 +22,10 @@ export interface SchemaResponse {
   items: string[]
 }
 
+export interface SummaryResponse {
+  summary: string
+}
+
 export interface StatusResponse {
   backends: Record<string, number>
   version: string
@@ -36,6 +40,7 @@ export interface Client {
   search(question: string, backend?: string): Promise<SearchResponse>
   schema(query?: string, limit?: number): Promise<SchemaResponse>
   status(): Promise<StatusResponse>
+  summary(question: string, query: string, result: unknown): Promise<SummaryResponse>
 }
 
 async function request<T>(url: string, token: string | undefined, init?: RequestInit): Promise<T> {
@@ -85,6 +90,12 @@ export function createClient({ api, token }: ClientOptions): Client {
     },
     status() {
       return request<StatusResponse>(`${api}/api/status`, token)
+    },
+    summary(question, query, result) {
+      return request<SummaryResponse>(`${api}/api/summary`, token, {
+        method: 'POST',
+        body: JSON.stringify({ question, query, result }),
+      })
     },
   }
 }

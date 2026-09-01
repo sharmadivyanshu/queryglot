@@ -184,3 +184,71 @@ def test_search_engine_exception_returns_failed_outcome_not_500():
     assert "OSError" in body["reason"]
     assert "connection refused" not in body["reason"]
     assert isinstance(body["elapsed_ms"], int)
+
+
+class CountingLLM:
+    """ScriptedLLM that also counts calls — for cache/summary assertions."""
+
+    def __init__(self, *completions):
+        self.completions = list(completions)
+        self.calls = []
+
+    def complete(self, system, prompt):
+        self.calls.append((system, prompt))
+        if len(self.completions) > 1:
+            return self.completions.pop(0)
+        return self.completions[0]
+
+
+def test_repeat_question_is_served_from_cache():
+    llm = CountingLLM("GOOD")
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=llm)
+    client = TestClient(create_app(engine))
+    first = client.post("/api/search", json={"question": "p95 latency by route"}).json()
+    calls_after_first = len(llm.calls)
+    second = client.post("/api/search", json={"question": "  P95 latency  by route "}).json()
+    assert len(llm.calls) == calls_after_first  # no new model calls
+    assert second["cached"] is True
+    assert first.get("cached") is not True
+    assert second["query"] == first["query"]
+
+
+def test_refresh_clears_the_cache():
+    llm = CountingLLM("GOOD")
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=llm)
+    client = TestClient(create_app(engine))
+    client.post("/api/search", json={"question": "p95 latency by route"})
+    calls_before = len(llm.calls)
+    client.post("/api/refresh")
+    client.post("/api/search", json={"question": "p95 latency by route"})
+    assert len(llm.calls) > calls_before
+
+
+def test_summary_endpoint_grounds_on_provided_data():
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=CountingLLM("GOOD"))
+    summary_llm = CountingLLM("Your slowest handler is /metrics at 0.67s.")
+    client = TestClient(create_app(engine, summary_llm=summary_llm))
+    response = client.post(
+        "/api/summary",
+        json={
+            "question": "which endpoint is slow?",
+            "query": "topk(5, ...)",
+            "result": {
+                "resultType": "vector",
+                "result": [{"metric": {"handler": "/metrics"}, "value": [0, "0.667"]}],
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert "slowest handler" in response.json()["summary"]
+    system, prompt = summary_llm.calls[0]
+    assert "ONLY" in system  # grounding instruction
+    assert "/metrics" in prompt and "0.667" in prompt
+
+
+def test_summary_endpoint_degrades_to_empty_without_llm():
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=CountingLLM("GOOD"))
+    client = TestClient(create_app(engine))
+    response = client.post("/api/summary", json={"question": "q", "query": "up", "result": []})
+    assert response.status_code == 200
+    assert response.json() == {"summary": ""}

@@ -236,6 +236,14 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
 
         {state.kind === 'answered' && (
           <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 13 }}>
+            {state.summary && (
+              <p
+                className="qg-anim"
+                style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--qg-text)' }}
+              >
+                {state.summary}
+              </p>
+            )}
             <QueryBlock query={state.answer.query} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <span style={sectionLabelStyle}>RESULT</span>

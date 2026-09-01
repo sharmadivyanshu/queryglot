@@ -15,7 +15,7 @@ export type ThinkingStage = 0 | 1 | 2 | 3
 export type AskState =
   | { kind: 'idle' }
   | { kind: 'thinking'; stage: ThinkingStage }
-  | { kind: 'answered'; answer: SearchResponse }
+  | { kind: 'answered'; answer: SearchResponse; summary?: string }
   | { kind: 'abstained'; answer: SearchResponse; suggestions: string[] }
   | { kind: 'failed'; answer: SearchResponse; error?: undefined }
   | { kind: 'failed'; answer?: undefined; error: string }
@@ -102,6 +102,16 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
           clearTimer()
           if (answer.outcome === 'answered') {
             setState({ kind: 'answered', answer })
+            client
+              .summary(question, answer.query, answer.result)
+              .then(({ summary }) => {
+                if (requestIdRef.current !== requestId || !summary) return
+                setState((current) => (current.kind === 'answered' ? { ...current, summary } : current))
+              })
+              .catch(() => {
+                // The rows already answered the question — a missing
+                // summary degrades to the plain result, never to an error.
+              })
           } else if (answer.outcome === 'abstained') {
             setState({ kind: 'abstained', answer, suggestions: [] })
             abstainedSuggestions(client, question)
