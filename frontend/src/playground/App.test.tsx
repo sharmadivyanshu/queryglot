@@ -73,3 +73,21 @@ test('shows an unreachable status chip and schema error when the backend is down
   await waitFor(() => expect(screen.getByText(/backend unreachable/)).toBeDefined())
   expect(screen.getByText(/couldn.t load schema/)).toBeDefined()
 })
+
+test('cmd+k resets the inline panel to idle after an answer', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+    ok: true, status: 200,
+    json: async () => {
+      if (String(url).includes('/api/status')) return { backends: { prometheus: 3 }, version: '0.1.0' }
+      if (String(url).includes('/api/schema')) return { items: ['go_goroutines (gauge)'] }
+      return { outcome: 'answered', backend: 'prometheus', query: 'up', result: { resultType: 'vector', result: [] }, reason: '', schema_used: ['up'], attempts: 1, elapsed_ms: 5 }
+    },
+  })))
+  render(<App />)
+  const input = await screen.findByPlaceholderText(/Ask anything/)
+  await userEvent.type(input, 'anything{Enter}')
+  await waitFor(() => expect(screen.getByText(/RAN THIS EXACT QUERY/)).toBeDefined())
+  await userEvent.keyboard('{Meta>}k{/Meta}')
+  await waitFor(() => expect(screen.queryByText(/RAN THIS EXACT QUERY/)).toBeNull())
+  expect(screen.getByText('SUGGESTED')).toBeDefined()
+})

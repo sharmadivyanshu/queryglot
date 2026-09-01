@@ -70,6 +70,18 @@ function answerOf(state: AskState): SearchResponse | undefined {
 function Playground() {
   const client = useMemo(() => createClient({ api: '' }), [])
   const { state, ask, reset } = useAsk(client)
+
+  // The panel header advertises ⌘K — honor it inline too: reset to idle.
+  useEffect(() => {
+    const onKeydown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        reset()
+      }
+    }
+    document.addEventListener('keydown', onKeydown)
+    return () => document.removeEventListener('keydown', onKeydown)
+  }, [reset])
   const [status, setStatus] = useState<StatusResponse | null>(null)
   const [statusUnreachable, setStatusUnreachable] = useState(false)
   const [schemaItems, setSchemaItems] = useState<string[]>([])
