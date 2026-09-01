@@ -18,10 +18,12 @@ export interface SchemaRailProps {
   /** Raw items from `/api/schema` (limit 50) — filtering below is client-side. */
   items: string[]
   status: StatusResponse | null
+  /** True once /api/schema has rejected — shows a short inline message instead of an empty list. */
+  unreachable: boolean
 }
 
 /** The 280px schema rail: filterable metric list from `/api/schema`, "+N more, introspected live", and the embed snippet. */
-export function SchemaRail({ items, status }: SchemaRailProps) {
+export function SchemaRail({ items, status, unreachable }: SchemaRailProps) {
   const [filter, setFilter] = useState('')
 
   const filtered = useMemo(() => {
@@ -46,14 +48,20 @@ export function SchemaRail({ items, status }: SchemaRailProps) {
           className="w-full border-none bg-transparent text-[12px] text-qg-text outline-none placeholder:text-qg-text-faint"
         />
       </div>
-      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
-        {filtered.map((item) => (
-          <div key={item} className="flex items-center justify-between rounded-lg px-3 py-2">
-            <span className="font-mono text-[11.5px] text-qg-text-mut">{item}</span>
-          </div>
-        ))}
-      </div>
-      {remaining !== undefined && remaining > 0 && (
+      {unreachable ? (
+        <span className="p-2 text-[11px] leading-[1.5] text-qg-info-text">
+          couldn&apos;t load schema — is queryglot-serve running?
+        </span>
+      ) : (
+        <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+          {filtered.map((item) => (
+            <div key={item} className="flex items-center justify-between rounded-lg px-3 py-2">
+              <span className="font-mono text-[11.5px] text-qg-text-mut">{item}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {!unreachable && remaining !== undefined && remaining > 0 && (
         <span className="p-2 text-[11px] text-qg-text-faint">+{remaining} more, introspected live</span>
       )}
       <div className="mt-auto flex flex-col gap-1.5 rounded-[10px] border border-qg-border bg-qg-surface2 p-3">

@@ -17,15 +17,25 @@ function totalMetricsOf(status: StatusResponse): number {
 const chipBase =
   'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium'
 
+export interface TopBarProps {
+  status: StatusResponse | null
+  /** True once /api/status has rejected — distinct from still-loading, so a down backend never reads as "connecting…" forever. */
+  unreachable: boolean
+}
+
 /** Top bar: logo + wordmark, "playground" chip, live status chip from /api/status, ThemeToggle. 60px per the mockup. */
-export function TopBar({ status }: { status: StatusResponse | null }) {
+export function TopBar({ status, unreachable }: TopBarProps) {
   return (
     <div className="flex h-[60px] items-center gap-3.5 border-b border-qg-border bg-qg-surface px-6">
       <LogoMark />
       <span className="font-disp text-[16px] font-bold tracking-[-0.01em] text-qg-text">queryglot</span>
       <span className={`${chipBase} border-qg-border bg-qg-surface2 text-qg-text-mut`}>playground</span>
       <div className="ml-auto flex items-center gap-2.5">
-        {status ? (
+        {unreachable ? (
+          <span className={`${chipBase} border-qg-info-border bg-qg-info-bg text-qg-info-text`}>
+            backend unreachable
+          </span>
+        ) : status ? (
           <span className={`${chipBase} border-qg-ok-border bg-qg-ok-bg text-qg-accent`}>
             connected · {totalMetricsOf(status)} metrics
           </span>

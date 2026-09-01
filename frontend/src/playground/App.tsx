@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ThemeProvider } from '../ui/theme'
 import { createClient } from '../lib/api'
-import type { StatusResponse } from '../lib/api'
+import type { SearchResponse, StatusResponse } from '../lib/api'
 import { useAsk } from '../lib/useAsk'
+import type { AskState } from '../lib/useAsk'
 import { Panel } from '../widget/Panel'
 import { TopBar } from './TopBar'
 import { SchemaRail } from './SchemaRail'
@@ -54,30 +55,43 @@ function AskBar({ onAsk }: { onAsk: (question: string) => void }) {
   )
 }
 
+/** Extracts the answer whenever the state actually carries one — answered, abstained, or a failed-with-answer (a validation failure still has real telemetry; only a connection failure has no answer at all). */
+function answerOf(state: AskState): SearchResponse | undefined {
+  if (state.kind === 'answered' || state.kind === 'abstained') {
+    return state.answer
+  }
+  if (state.kind === 'failed' && state.answer !== undefined) {
+    return state.answer
+  }
+  return undefined
+}
+
 function Playground() {
   const client = useMemo(() => createClient({ api: '' }), [])
   const { state, ask, reset } = useAsk(client)
   const [status, setStatus] = useState<StatusResponse | null>(null)
+  const [statusUnreachable, setStatusUnreachable] = useState(false)
   const [schemaItems, setSchemaItems] = useState<string[]>([])
+  const [schemaUnreachable, setSchemaUnreachable] = useState(false)
 
   useEffect(() => {
     client
       .status()
       .then(setStatus)
-      .catch(() => {})
+      .catch(() => setStatusUnreachable(true))
     client
       .schema('', SCHEMA_LIMIT)
       .then((response) => setSchemaItems(response.items))
-      .catch(() => {})
+      .catch(() => setSchemaUnreachable(true))
   }, [client])
 
-  const answer = state.kind === 'answered' ? state.answer : undefined
+  const answer = answerOf(state)
 
   return (
     <div className="flex h-screen w-screen flex-col bg-qg-bg text-qg-text">
-      <TopBar status={status} />
+      <TopBar status={status} unreachable={statusUnreachable} />
       <div className="flex min-h-0 flex-1">
-        <SchemaRail items={schemaItems} status={status} />
+        <SchemaRail items={schemaItems} status={status} unreachable={schemaUnreachable} />
         <main className="flex min-w-0 flex-1 flex-col gap-[18px] px-8 py-7">
           <div className="flex flex-col gap-1.5">
             <h1 className="font-disp text-[23px] font-bold tracking-[-0.015em] text-qg-text">
