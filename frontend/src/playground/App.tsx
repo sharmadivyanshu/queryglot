@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { ThemeProvider } from '../ui/theme'
 import { createClient } from '../lib/api'
 import type { SchemaField, SearchResponse, StatusResponse } from '../lib/api'
+import { parseVector } from '../lib/resultData'
 import { useAsk } from '../lib/useAsk'
 import type { AskState } from '../lib/useAsk'
 import { Panel } from '../widget/Panel'
+import { BarChart } from './BarChart'
 import { TopBar } from './TopBar'
 import { SchemaRail } from './SchemaRail'
 import { TracePanel } from './TracePanel'
@@ -118,6 +120,12 @@ function Playground() {
 
   const answer = answerOf(state)
 
+  const resultView = (searchResponse: SearchResponse) => {
+    const rows = parseVector(searchResponse.result)
+    if (!rows || rows.length < 2) return null
+    return <BarChart rows={rows} />
+  }
+
   return (
     <div className="flex h-screen w-screen flex-col bg-qg-bg text-qg-text">
       <TopBar status={status} unreachable={statusUnreachable} />
@@ -142,7 +150,7 @@ function Playground() {
           <AskBar onAsk={ask} seed={seed} />
           <div className="flex min-h-0 flex-1 gap-[18px]">
             <div className="min-w-0 flex-1">
-              <Panel state={state} onAsk={ask} onClose={reset} suggestions={SUGGESTIONS} inline />
+              <Panel state={state} onAsk={ask} onClose={reset} suggestions={SUGGESTIONS} inline resultView={resultView} />
             </div>
             <TracePanel answer={answer} />
           </div>

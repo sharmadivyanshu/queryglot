@@ -1,10 +1,29 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { Panel } from './Panel'
 
 const noop = () => {}
 const answered = { kind: 'answered' as const, answer: { outcome: 'answered' as const, backend: 'prometheus',
   query: 'histogram_quantile(0.95, rate(x[5m]))', result: [{ metric: { route: '/api/checkout' }, value: [0, '0.412'] }],
   reason: '', schema_used: ['a', 'b'], attempts: 1, elapsed_ms: 2100 } }
+
+function answeredResponse() {
+  return {
+    outcome: 'answered' as const,
+    backend: 'prometheus',
+    query: 'histogram_quantile(0.95, rate(x[5m]))',
+    result: {
+      resultType: 'vector',
+      result: [
+        { metric: { route: '/api/checkout' }, value: [0, '0.9'] },
+        { metric: { route: '/api/cart' }, value: [0, '0.4'] },
+      ],
+    },
+    reason: '',
+    schema_used: ['a', 'b'],
+    attempts: 1,
+    elapsed_ms: 2100,
+  }
+}
 
 test('idle shows suggestions and grounding note', () => {
   render(<Panel state={{ kind: 'idle' }} onAsk={noop} onClose={noop} suggestions={['error rate in the last hour']} />)
@@ -103,4 +122,24 @@ test('vector rows render sorted descending with the max first', () => {
   const rows = screen.getAllByText(/\/(small|big|mid)/).map((el) => el.textContent)
   expect(rows[0]).toContain('/big')
   expect(rows[2]).toContain('/small')
+})
+
+it('renders resultView output with a chart/rows toggle, and rows when toggled', () => {
+  const answer = answeredResponse()  // reuse the file's existing answered fixture builder
+  render(
+    <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => <div data-testid="custom-chart" />} />,
+  )
+  expect(screen.getByTestId('custom-chart')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'rows' }))
+  expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
+})
+
+it('shows no toggle and plain rows when resultView is absent or returns null', () => {
+  const answer = answeredResponse()
+  render(
+    <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => null} />,
+  )
+  expect(screen.queryByRole('button', { name: 'chart' })).not.toBeInTheDocument()
 })
