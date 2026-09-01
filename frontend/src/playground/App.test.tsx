@@ -17,7 +17,7 @@ test('renders status chip and schema rail from api', async () => {
   )
   render(<App />)
   await waitFor(() => expect(screen.getByText(/connected · 312 metrics/)).toBeDefined())
-  expect(screen.getByText(/go_goroutines/)).toBeDefined()
+  expect(screen.getByText(/go_\*/)).toBeDefined()
   expect(screen.getByText('Your metrics, answerable in plain language.')).toBeDefined()
 })
 

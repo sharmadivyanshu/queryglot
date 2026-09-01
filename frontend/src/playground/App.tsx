@@ -26,8 +26,15 @@ function SearchIcon() {
   )
 }
 
-function AskBar({ onAsk }: { onAsk: (question: string) => void }) {
+function AskBar({ onAsk, seed }: { onAsk: (question: string) => void; seed: string }) {
   const [value, setValue] = useState('')
+  // Adjusts state during render rather than in an effect (react.dev/learn/you-might-not-need-an-effect
+  // #adjusting-some-state-when-a-prop-changes) — a seed change must land before this render paints.
+  const [appliedSeed, setAppliedSeed] = useState('')
+  if (seed && seed !== appliedSeed) {
+    setAppliedSeed(seed)
+    setValue(seed)
+  }
 
   function submit() {
     const trimmed = value.trim()
@@ -90,6 +97,13 @@ function Playground() {
   const [statusUnreachable, setStatusUnreachable] = useState(false)
   const [schemaFields, setSchemaFields] = useState<SchemaField[]>([])
   const [schemaUnreachable, setSchemaUnreachable] = useState(false)
+  const [seed, setSeed] = useState('')  // pre-fill for AskBar
+
+  const lastAnswerNames = state.kind === 'answered' ? state.answer.schema_used : []
+  const askAbout = (name: string) => {
+    setSeed(name)
+    document.getElementById('qg-ask')?.focus()
+  }
 
   useEffect(() => {
     client
@@ -113,8 +127,8 @@ function Playground() {
           total={status ? totalMetricsOf(status) : undefined}
           status={status}
           unreachable={schemaUnreachable}
-          lastAnswerNames={[]}
-          onAskAbout={() => {}}
+          lastAnswerNames={lastAnswerNames}
+          onAskAbout={askAbout}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-[18px] px-8 py-7">
           <div className="flex flex-col gap-1.5">
@@ -125,7 +139,7 @@ function Playground() {
               Every answer shows the exact validated query it ran. Off-schema questions get an honest refusal.
             </p>
           </div>
-          <AskBar onAsk={ask} />
+          <AskBar onAsk={ask} seed={seed} />
           <div className="flex min-h-0 flex-1 gap-[18px]">
             <div className="min-w-0 flex-1">
               <Panel state={state} onAsk={ask} onClose={reset} suggestions={SUGGESTIONS} inline />

@@ -47,7 +47,6 @@ export interface SchemaRailProps {
   onAskAbout: (name: string) => void
 }
 
-/** Row rendering is deliberately flat and un-grouped here — Task 6 wraps rows in prefix groups and expansion cards on top of this component. */
 function FieldRow({ field, hot, onClick }: { field: SchemaField; hot: boolean; onClick: () => void }) {
   return (
     <button
@@ -64,10 +63,44 @@ function FieldRow({ field, hot, onClick }: { field: SchemaField; hot: boolean; o
   )
 }
 
+function GroupHeader({ prefix, count, open, onToggle }: { prefix: string; count: number; open: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} aria-expanded={open}
+      className="flex w-full cursor-pointer items-center gap-1.5 px-1.5 pb-1 pt-2 text-left text-[10.5px] font-semibold tracking-[0.08em] text-qg-text-faint">
+      <span aria-hidden="true" className="text-[9px]">{open ? '▾' : '▸'}</span>
+      {prefix}_* <span className="font-mono font-medium tracking-normal">{count}</span>
+    </button>
+  )
+}
+
+function ExpandCard({ field, onAskAbout }: { field: SchemaField; onAskAbout: (name: string) => void }) {
+  return (
+    <div className="mx-1.5 mb-1.5 mt-0.5 flex flex-col gap-2 rounded-[11px] border border-qg-border bg-qg-surface p-3">
+      <span className="break-all font-mono text-[12px] font-medium text-qg-text">{field.name}</span>
+      {field.labels.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {field.labels.map((label) => (
+            <span key={label} className="rounded-full border border-qg-border-soft bg-qg-surface2 px-2 py-[3px] font-mono text-[10.5px] text-qg-text-mut">
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
+      {field.help && <span className="text-[11.5px] leading-[1.5] text-qg-text-faint">{field.help}</span>}
+      <button type="button" onClick={() => onAskAbout(field.name)}
+        className="cursor-pointer text-left text-[11.5px] font-medium text-qg-accent">
+        ↳ ask about this metric
+      </button>
+    </div>
+  )
+}
+
 /** The 280px schema rail: typed/filterable field list from `/api/schema`, "+N more, introspected live", and the embed snippet. */
 export function SchemaRail({ fields, total, unreachable, lastAnswerNames, onAskAbout }: SchemaRailProps) {
   const [filter, setFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  const [expandedField, setExpandedField] = useState<string | null>(null)
 
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -87,6 +120,48 @@ export function SchemaRail({ fields, total, unreachable, lastAnswerNames, onAskA
   const totalCount = total ?? fields.length
   const remaining = totalCount - fields.length
   const hotNames = useMemo(() => new Set(lastAnswerNames), [lastAnswerNames])
+
+  const filtering = filter.trim() !== '' || typeFilter !== null
+
+  const lastAnswerFields = useMemo(
+    () => lastAnswerNames
+      .map((name) => fields.find((field) => field.name === name) ?? { name, type: '', kind: 'metric', labels: [], help: '', backend: '' })
+      .filter((field, i, all) => all.findIndex((other) => other.name === field.name) === i),
+    [fields, lastAnswerNames],
+  )
+
+  const groups = useMemo(() => {
+    const map = new Map<string, SchemaField[]>()
+    for (const field of visible) {
+      const key = field.name.split('_')[0]
+      const bucket = map.get(key)
+      if (bucket) bucket.push(field)
+      else map.set(key, [field])
+    }
+    return [...map.entries()].sort((a, b) => b[1].length - a[1].length)
+  }, [visible])
+
+  function toggleGroup(prefix: string) {
+    setOpenGroups((current) => {
+      const next = new Set(current)
+      if (next.has(prefix)) next.delete(prefix)
+      else next.add(prefix)
+      return next
+    })
+  }
+
+  function toggleField(name: string) {
+    setExpandedField((current) => (current === name ? null : name))
+  }
+
+  function renderRow(field: SchemaField, hot: boolean) {
+    return (
+      <div key={field.name}>
+        <FieldRow field={field} hot={hot} onClick={() => toggleField(field.name)} />
+        {expandedField === field.name && <ExpandCard field={field} onAskAbout={onAskAbout} />}
+      </div>
+    )
+  }
 
   return (
     <div className="flex w-[280px] flex-col gap-1 border-r border-qg-border bg-qg-surface px-3 py-4">
@@ -126,14 +201,27 @@ export function SchemaRail({ fields, total, unreachable, lastAnswerNames, onAskA
             ))}
           </div>
           <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
-            {visible.map((field) => (
-              <FieldRow
-                key={field.name}
-                field={field}
-                hot={hotNames.has(field.name)}
-                onClick={() => onAskAbout(field.name)}
-              />
-            ))}
+            {lastAnswerFields.length > 0 && (
+              <div>
+                <span className="block px-1.5 pb-1 pt-2 text-[10.5px] font-semibold tracking-[0.08em] text-qg-text-faint">
+                  IN LAST ANSWER <span className="font-mono font-medium tracking-normal">{lastAnswerFields.length}</span>
+                </span>
+                {lastAnswerFields.map((field) => renderRow(field, true))}
+              </div>
+            )}
+            {filtering
+              ? visible.map((field) => renderRow(field, hotNames.has(field.name)))
+              : groups.map(([prefix, groupFields]) => (
+                  <div key={prefix}>
+                    <GroupHeader
+                      prefix={prefix}
+                      count={groupFields.length}
+                      open={openGroups.has(prefix)}
+                      onToggle={() => toggleGroup(prefix)}
+                    />
+                    {openGroups.has(prefix) && groupFields.map((field) => renderRow(field, hotNames.has(field.name)))}
+                  </div>
+                ))}
           </div>
         </>
       )}
