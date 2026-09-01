@@ -22,7 +22,7 @@ export type AskState =
 
 export interface UseAskResult {
   state: AskState
-  ask: (question: string) => void
+  ask: (question: string, opts?: { fresh?: boolean }) => void
   reset: () => void
 }
 
@@ -74,7 +74,7 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
   }, [clearTimer])
 
   const ask = useCallback(
-    (question: string) => {
+    (question: string, opts?: { fresh?: boolean }) => {
       const requestId = ++requestIdRef.current
       clearTimer()
 
@@ -94,7 +94,7 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
       }
 
       client
-        .search(question, backend)
+        .search(question, backend, opts?.fresh)
         .then((answer) => {
           if (requestIdRef.current !== requestId) {
             return

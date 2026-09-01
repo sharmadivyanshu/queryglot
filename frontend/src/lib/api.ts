@@ -7,6 +7,15 @@
 
 export type Outcome = 'answered' | 'abstained' | 'failed'
 
+export interface SchemaField {
+  name: string
+  type: string
+  kind: string
+  labels: string[]
+  help: string
+  backend: string
+}
+
 export interface SearchResponse {
   outcome: Outcome
   backend: string
@@ -16,10 +25,13 @@ export interface SearchResponse {
   schema_used: string[]
   attempts: number
   elapsed_ms: number
+  cached?: boolean
+  cache_age_s?: number
 }
 
 export interface SchemaResponse {
   items: string[]
+  fields: SchemaField[]
 }
 
 export interface SummaryResponse {
@@ -37,7 +49,7 @@ export interface ClientOptions {
 }
 
 export interface Client {
-  search(question: string, backend?: string): Promise<SearchResponse>
+  search(question: string, backend?: string, fresh?: boolean): Promise<SearchResponse>
   schema(query?: string, limit?: number): Promise<SchemaResponse>
   status(): Promise<StatusResponse>
   summary(question: string, query: string, result: unknown): Promise<SummaryResponse>
@@ -74,10 +86,10 @@ export function extractItemNames(items: string[]): string[] {
 
 export function createClient({ api, token }: ClientOptions): Client {
   return {
-    search(question, backend) {
+    search(question, backend, fresh) {
       return request<SearchResponse>(`${api}/api/search`, token, {
         method: 'POST',
-        body: JSON.stringify({ question, backend }),
+        body: JSON.stringify(fresh ? { question, backend, fresh: true } : { question, backend }),
       })
     },
     schema(query = '', limit = 20) {
