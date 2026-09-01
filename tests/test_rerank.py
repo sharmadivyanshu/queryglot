@@ -46,9 +46,11 @@ def test_rerank_reorders_and_appends_unmentioned():
         "prometheus_sd_consul_rpc_duration_seconds",
         "go_goroutines",
     ]
-    # the model saw the question and every candidate
+    # the model saw the question and every candidate — as compact lines
     assert "which endpoint has max latency?" in llm.calls[0]
     assert "go_goroutines" in llm.calls[0]
+    # token diet: help text stays out of the rerank prompt
+    assert "latencies for HTTP requests" not in llm.calls[0]
 
 
 def test_garbage_reply_falls_back_to_lexical_order():

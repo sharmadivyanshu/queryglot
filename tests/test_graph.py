@@ -83,7 +83,7 @@ def test_rerank_reorders_the_prompt_slice(catalog):
     prompt then leads with the reranked winner. Gate still fires pre-rerank."""
     llm = ScriptedLLM("orders_queue_depth", "GOOD")
     graph = build_graph(FakeBackend(valid={"GOOD"}), SchemaRetriever(catalog), llm, rerank=True)
-    final = graph.invoke({"question": "http requests pending in the queue backlog"})
+    final = graph.invoke({"question": "requests served and pending orders"})
     assert final["outcome"] == "answered"
     assert len(llm.calls) == 2
     assert "comma-separated" in llm.calls[0]  # first call was the rerank
@@ -97,3 +97,14 @@ def test_rerank_off_abstention_spends_no_calls(catalog):
     final = graph.invoke({"question": "bitcoin wallet balance please"})
     assert final["outcome"] == "abstained"
     assert llm.calls == []
+
+
+def test_rerank_skipped_when_lexical_is_confident(catalog):
+    """Exact-name mentions (+10 boost) and dominant top hits skip the rerank
+    call — only contested rankings pay for judgment."""
+    llm = ScriptedLLM("GOOD")
+    graph = build_graph(FakeBackend(valid={"GOOD"}), SchemaRetriever(catalog), llm, rerank=True)
+    final = graph.invoke({"question": "orders_queue_depth versus the http requests rate"})
+    assert final["outcome"] == "answered"
+    assert len(llm.calls) == 1  # straight to compile — no rerank call
+    assert "comma-separated" not in llm.calls[0]

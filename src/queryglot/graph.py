@@ -24,6 +24,10 @@ from .retrieve import SchemaRetriever
 
 MAX_REPAIRS = 2
 MIN_RETRIEVAL_SCORE = 0.35
+# Rerank only contested rankings: an exact-name mention (the +10 boost) or a
+# clearly dominant top hit answers the relevance question for free.
+RERANK_EXACT_FLOOR = 10.0
+RERANK_MARGIN = 1.5
 
 
 class Attempt(TypedDict):
@@ -57,9 +61,14 @@ def build_graph(
             return {"schema": [], "top_score": 0.0}
         hits = retriever.search(state["question"], backend=backend.name)
         top_score = hits[0][1] if hits else 0.0
-        if rerank and top_score >= MIN_RETRIEVAL_SCORE:
+        contested = (
+            len(hits) >= 2
+            and top_score < RERANK_EXACT_FLOOR
+            and top_score < RERANK_MARGIN * hits[1][1]
+        )
+        if rerank and top_score >= MIN_RETRIEVAL_SCORE and contested:
             # judgment over a closed set; the gate runs on the lexical score,
-            # so refusals never reach this call
+            # so refusals never reach this call — and confident rankings skip it
             hits = rerank_hits(llm, state["question"], hits)
         return {
             "schema": [item for item, _ in hits],

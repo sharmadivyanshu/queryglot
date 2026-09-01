@@ -24,9 +24,18 @@ RERANK_SYSTEM = (
 )
 
 
+def _compact(item: SchemaItem) -> str:
+    """Name, type and labels only — help text is the compile prompt's job;
+    here it would double the token bill of every judgment call."""
+    bits = [f"{item.name} ({item.type or item.kind})"]
+    if item.labels:
+        bits.append(f"labels: {', '.join(item.labels)}")
+    return " — ".join(bits)
+
+
 def rerank_prompt(question: str, items: list[SchemaItem]) -> str:
     lines = [f"Question: {question}", "", "Items:"]
-    lines += [f"- {item.render()}" for item in items]
+    lines += [f"- {_compact(item)}" for item in items]
     lines += ["", "Best-matching item names, comma-separated:"]
     return "\n".join(lines)
 
