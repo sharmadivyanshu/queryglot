@@ -157,7 +157,21 @@ def create_app(
         if query:
             needle = query.lower()
             items = [i for i in items if needle in i.name.lower() or needle in i.help.lower()]
-        return {"items": [item.render() for item in items[:limit]]}
+        sliced = items[:limit]
+        return {
+            "items": [item.render() for item in sliced],
+            "fields": [
+                {
+                    "name": item.name,
+                    "type": item.type,
+                    "kind": item.kind,
+                    "labels": list(item.labels),
+                    "help": item.help,
+                    "backend": item.backend,
+                }
+                for item in sliced
+            ],
+        }
 
     static_dir = static_dir if static_dir is not None else Path(__file__).parent / "_static"
 

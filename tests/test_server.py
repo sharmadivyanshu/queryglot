@@ -46,7 +46,7 @@ def test_search_empty_question_is_400():
 def test_schema_lists_rendered_items():
     response = client_for().get("/api/schema")
     assert response.status_code == 200
-    assert response.json() == {"items": []}
+    assert response.json() == {"items": [], "fields": []}
 
 
 def test_refresh_reintrospects():
@@ -252,3 +252,21 @@ def test_summary_endpoint_degrades_to_empty_without_llm():
     response = client.post("/api/summary", json={"question": "q", "query": "up", "result": []})
     assert response.status_code == 200
     assert response.json() == {"summary": ""}
+
+
+def test_schema_returns_structured_fields_alongside_items():
+    """The rail needs structure; the widget keeps the rendered strings.
+    Same filter, same limit, same order — items[i] and fields[i] agree."""
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine))
+    body = client.get("/api/schema").json()
+    assert len(body["fields"]) == len(body["items"])
+    first = body["fields"][0]
+    assert first["name"] == "http_server_request_duration_seconds"
+    assert first["type"] == "histogram"
+    assert first["kind"] == "metric"
+    assert isinstance(first["labels"], list)
+    assert first["backend"] == "prometheus"
+    assert "help" in first
+    # the rendered string for the same index names the same item
+    assert body["items"][0].startswith(first["name"])
