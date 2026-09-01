@@ -23,7 +23,8 @@ question ──> retrieve            ──> compile        ──> validate    
 ```
 
 - **Retrieval owns facts** (your metric names, labels, index fields —
-  introspected from the live backend, never hallucinated).
+  introspected from the live backend, never hallucinated). An LLM reranker
+  orders the candidates by intent — over a closed set it can never add to.
 - **The model owns syntax** (PromQL / Query DSL — swap in your own fine-tune
   via any OpenAI-compatible endpoint, including `mlx_lm.server` on a Mac).
 - **The backend owns truth**: every query is validated by the server's own

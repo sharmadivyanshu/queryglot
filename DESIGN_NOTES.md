@@ -428,7 +428,14 @@ validation now uses the metadata type to reject it. Residual, named
 honestly: for "which endpoint has max latency", lexical retrieval prefers
 the live Consul SD summary (whose label is literally `endpoint`) over the
 HTTP histogram (label `handler`) — a semantic preference no lexical ranker
-can adjudicate; the boundary where a reranker would begin.
+can adjudicate. That boundary is now crossed: `rerank.py` adds an
+LLM-as-reranker over the CLOSED candidate set — the model may only reorder
+names lexical retrieval surfaced, strict parsing drops invented names,
+any failure falls back to lexical order, and the abstention gate runs on
+the lexical score first so refusals never spend the call. The trigger the
+retrieve docstring always demanded (eval evidence of lexical failure) was
+bug 17 itself. Verified: 3/3 runs pick the HTTP histogram; golden set
+unchanged at 9/10; refusals still ~2ms.
 
 ---
 

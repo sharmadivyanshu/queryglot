@@ -76,3 +76,24 @@ def test_no_retriever_still_bounds_repairs():
     assert final["outcome"] == "abstained"
     assert len(llm.calls) == MAX_REPAIRS + 1
     assert "attempts" in final["reason"]
+
+
+def test_rerank_reorders_the_prompt_slice(catalog):
+    """With rerank on, the model's first call ranks candidates; the compile
+    prompt then leads with the reranked winner. Gate still fires pre-rerank."""
+    llm = ScriptedLLM("orders_queue_depth", "GOOD")
+    graph = build_graph(FakeBackend(valid={"GOOD"}), SchemaRetriever(catalog), llm, rerank=True)
+    final = graph.invoke({"question": "http requests pending in the queue backlog"})
+    assert final["outcome"] == "answered"
+    assert len(llm.calls) == 2
+    assert "comma-separated" in llm.calls[0]  # first call was the rerank
+    schema_lines = [ln for ln in llm.calls[1].splitlines() if ln.startswith("- ")]
+    assert schema_lines[0].startswith("- orders_queue_depth")
+
+
+def test_rerank_off_abstention_spends_no_calls(catalog):
+    llm = ScriptedLLM("NEVER")
+    graph = build_graph(FakeBackend(), SchemaRetriever(catalog), llm, rerank=True)
+    final = graph.invoke({"question": "bitcoin wallet balance please"})
+    assert final["outcome"] == "abstained"
+    assert llm.calls == []

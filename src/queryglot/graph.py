@@ -19,6 +19,7 @@ from .backends import Backend
 from .catalog import SchemaItem
 from .llm import LLM, extract_query
 from .prompts import SYSTEM, compile_prompt
+from .rerank import rerank as rerank_hits
 from .retrieve import SchemaRetriever
 
 MAX_REPAIRS = 2
@@ -42,16 +43,27 @@ class SearchState(TypedDict, total=False):
     reason: str
 
 
-def build_graph(backend: Backend, retriever: SchemaRetriever | None, llm: LLM, checkpointer=None):
+def build_graph(
+    backend: Backend,
+    retriever: SchemaRetriever | None,
+    llm: LLM,
+    checkpointer=None,
+    rerank: bool = False,
+):
     system = SYSTEM.format(language=backend.language, backend=backend.name)
 
     def retrieve(state: SearchState) -> dict:
         if retriever is None:  # no-retrieval arm: the model gets no schema slice
             return {"schema": [], "top_score": 0.0}
         hits = retriever.search(state["question"], backend=backend.name)
+        top_score = hits[0][1] if hits else 0.0
+        if rerank and top_score >= MIN_RETRIEVAL_SCORE:
+            # judgment over a closed set; the gate runs on the lexical score,
+            # so refusals never reach this call
+            hits = rerank_hits(llm, state["question"], hits)
         return {
             "schema": [item for item, _ in hits],
-            "top_score": hits[0][1] if hits else 0.0,
+            "top_score": top_score,
         }
 
     def compile_query(state: SearchState) -> dict:

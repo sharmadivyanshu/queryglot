@@ -35,12 +35,19 @@ class Answer:
 
 
 class Engine:
-    def __init__(self, backends: list[Backend], llm: LLM | None = None, use_retrieval: bool = True):
+    def __init__(
+        self,
+        backends: list[Backend],
+        llm: LLM | None = None,
+        use_retrieval: bool = True,
+        rerank: bool = True,
+    ):
         if not backends:
             raise ValueError("at least one backend is required")
         self.backends = {b.name: b for b in backends}
         self.llm = llm or OpenAICompatibleLLM()
         self.use_retrieval = use_retrieval
+        self.rerank = rerank
         self.catalog = Catalog()
         self._graphs: dict[str, Any] = {}
 
@@ -55,7 +62,9 @@ class Engine:
             counts[name] = len(items)
         retriever = SchemaRetriever(self.catalog) if self.use_retrieval else None
         self._graphs = {
-            name: build_graph(backend, retriever, self.llm)
+            name: build_graph(
+                backend, retriever, self.llm, rerank=self.rerank and self.use_retrieval
+            )
             for name, backend in self.backends.items()
         }
         return counts
