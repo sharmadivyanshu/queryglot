@@ -270,3 +270,30 @@ def test_schema_returns_structured_fields_alongside_items():
     assert "help" in first
     # the rendered string for the same index names the same item
     assert body["items"][0].startswith(first["name"])
+
+
+def test_fresh_true_bypasses_cache_and_restores():
+    llm = CountingLLM("GOOD")
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=llm)
+    client = TestClient(create_app(engine))
+    client.post("/api/search", json={"question": "p95 latency by route"})
+    calls_after_first = len(llm.calls)
+    fresh = client.post(
+        "/api/search", json={"question": "p95 latency by route", "fresh": True}
+    ).json()
+    assert "cached" not in fresh  # a bypassed read is a live answer
+    assert len(llm.calls) > calls_after_first  # the model really ran again
+    # ...and the fresh run re-primed the cache
+    hit = client.post("/api/search", json={"question": "p95 latency by route"}).json()
+    assert hit["cached"] is True
+
+
+def test_cache_hit_reports_age_in_seconds():
+    llm = CountingLLM("GOOD")
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=llm)
+    client = TestClient(create_app(engine))
+    client.post("/api/search", json={"question": "p95 latency by route"})
+    hit = client.post("/api/search", json={"question": "p95 latency by route"}).json()
+    assert hit["cached"] is True
+    assert isinstance(hit["cache_age_s"], int)
+    assert hit["cache_age_s"] >= 0
