@@ -163,6 +163,7 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={handleInputKeyDown}
             placeholder="Ask anything about your live metrics…"
+            name="qg-panel-ask"
             autoFocus
             style={{
               flexGrow: 1,
@@ -183,7 +184,7 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
         </div>
       )}
 
-      <div aria-live="polite" aria-atomic="false">
+      <div aria-live="polite" aria-atomic="false" className="qg-anim" key={state.kind}>
         {state.kind === 'idle' && (
           <div style={{ padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ ...sectionLabelStyle, padding: '4px 10px' }}>SUGGESTED</span>

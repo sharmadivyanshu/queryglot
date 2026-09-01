@@ -97,7 +97,7 @@ export function PipelineStages({ stage }: { stage: ThinkingStage }) {
         const status = statusOf(i, stage)
         const label = status === 'done' ? meta.doneLabel : status === 'current' ? meta.currentLabel : meta.pendingLabel
         return (
-          <div key={meta.name} style={{ display: 'flex', alignItems: 'center', gap: 12, opacity: status === 'pending' ? 0.45 : 1 }}>
+          <div key={meta.name} style={{ display: 'flex', alignItems: 'center', gap: 12, opacity: status === 'pending' ? 0.45 : 1, transition: 'opacity 200ms ease' }}>
             <StageIcon status={status} />
             <span
               style={{
@@ -116,7 +116,7 @@ export function PipelineStages({ stage }: { stage: ThinkingStage }) {
         )
       })}
       <div style={trackStyle}>
-        <div style={{ width: `${stage * 33 + 11}%`, height: '100%', borderRadius: 999, background: 'var(--qg-accent)' }} />
+        <div className="qg-progress-fill" style={{ width: `${stage * 33 + 11}%`, height: '100%', borderRadius: 999, background: 'var(--qg-accent)' }} />
       </div>
     </div>
   )

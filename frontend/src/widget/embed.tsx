@@ -174,7 +174,7 @@ function Widget({ config }: { config: WidgetConfig }) {
           <Panel key={panelKey} state={state} onAsk={ask} onClose={close} suggestions={DEFAULT_SUGGESTIONS} />
         </div>
       )}
-      <button ref={pillRef} type="button" onClick={() => setOpen(true)} aria-label="Ask queryglot" style={pillStyle}>
+      <button ref={pillRef} type="button" className="qg-pill" onClick={() => setOpen(true)} aria-label="Ask queryglot" style={pillStyle}>
         <BrandIcon />
         <span className="disp" style={pillLabelStyle}>
           Ask

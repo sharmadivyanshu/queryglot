@@ -23,6 +23,20 @@ const preStyle: CSSProperties = {
   wordBreak: 'break-word',
 }
 
+/** Prometheus wraps vectors as {resultType: "vector", result: [...]} — unwrap it. */
+function unwrap(result: unknown): unknown {
+  if (
+    typeof result === 'object' &&
+    result !== null &&
+    'resultType' in result &&
+    (result as { resultType: unknown }).resultType === 'vector' &&
+    'result' in result
+  ) {
+    return (result as { result: unknown }).result
+  }
+  return result
+}
+
 function isInstantVector(result: unknown): result is InstantVectorSample[] {
   return (
     Array.isArray(result) &&
@@ -58,7 +72,8 @@ function formatValue(raw: string): string {
  * space, value = the raw result string formatted to 3 sig figs). Anything
  * else falls back to pretty-printed JSON in a scrollable <pre>.
  */
-export function ResultRows({ result }: { result: unknown }) {
+export function ResultRows({ result: rawResult }: { result: unknown }) {
+  const result = unwrap(rawResult)
   if (isInstantVector(result)) {
     if (result.length === 0) {
       return <span style={{ fontSize: 12, color: 'var(--qg-text-faint)' }}>No series returned.</span>

@@ -56,3 +56,21 @@ test('failed with zero attempts says the model was never reached, not "failed af
   expect(screen.getByText(/Couldn.t reach the model — nothing was run/)).toBeDefined()
   expect(screen.queryByText(/failed after 0 attempts/)).toBeNull()
 })
+
+test('answered renders label/value rows for the wrapped prometheus vector shape', () => {
+  const wrapped = {
+    ...answered,
+    answer: {
+      ...answered.answer,
+      result: {
+        resultType: 'vector',
+        result: [
+          { metric: { __name__: 'go_goroutines', job: 'prometheus' }, value: [1788274792.48, '36'] },
+        ],
+      },
+    },
+  }
+  render(<Panel state={wrapped} onAsk={noop} onClose={noop} suggestions={[]} />)
+  expect(screen.getByText('36')).toBeDefined()
+  expect(screen.queryByText(/resultType/)).toBeNull()
+})

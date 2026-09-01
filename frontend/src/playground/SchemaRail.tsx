@@ -45,6 +45,7 @@ export function SchemaRail({ items, status, unreachable }: SchemaRailProps) {
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
           placeholder="filter metrics…"
+            name="qg-filter" id="qg-filter"
           className="w-full border-none bg-transparent text-[12px] text-qg-text outline-none placeholder:text-qg-text-faint"
         />
       </div>

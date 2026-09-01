@@ -42,6 +42,7 @@ function AskBar({ onAsk }: { onAsk: (question: string) => void }) {
           if (event.key === 'Enter') submit()
         }}
         placeholder="p95 latency by route over the last 15 minutes"
+            name="qg-ask" id="qg-ask"
         className="flex-1 border-none bg-transparent text-[15px] text-qg-text outline-none placeholder:text-qg-text-faint"
       />
       <button

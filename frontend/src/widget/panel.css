@@ -72,3 +72,52 @@
 .qg-panel input::placeholder {
   color: var(--qg-text-faint);
 }
+
+/* ---- motion: meaning-bearing, CSS-only, reduced-motion aware ---- */
+@keyframes qg-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.qg-anim {
+  animation: qg-rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* state chrome crossfades when the theme flips */
+.qg-panel,
+.qg-panel .krow,
+.qg-panel .chip,
+.qg-panel .kbd {
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+
+/* suggestion + abstain rows: hover is a surface, not a jump */
+.qg-panel button.krow,
+.qg-panel [role='option'] {
+  transition: background-color 150ms ease;
+}
+
+/* thinking progress bar tracks the stage timer smoothly */
+.qg-progress-fill {
+  transition: width 600ms linear;
+}
+
+/* floating pill: lift on hover, settle on press */
+.qg-pill {
+  transition: transform 150ms ease, box-shadow 200ms ease;
+}
+.qg-pill:hover {
+  transform: translateY(-1px);
+}
+.qg-pill:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qg-anim { animation: none; }
+  .qg-panel, .qg-panel .krow, .qg-panel .chip, .qg-panel .kbd,
+  .qg-panel button.krow, .qg-progress-fill, .qg-pill {
+    transition: none;
+  }
+  .qg-pill:hover, .qg-pill:active { transform: none; }
+}
