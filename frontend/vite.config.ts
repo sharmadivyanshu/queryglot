@@ -6,6 +6,14 @@ export default defineConfig(({ mode }) => {
     return {
       plugins: [react()],
       define: { 'process.env.NODE_ENV': '"production"' },
+      resolve: {
+        alias: {
+          'react-dom/client': 'preact/compat/client',
+          'react-dom/test-utils': 'preact/test-utils',
+          'react-dom': 'preact/compat',
+          react: 'preact/compat',
+        },
+      },
       build: {
         outDir: 'dist-widget',
         lib: {

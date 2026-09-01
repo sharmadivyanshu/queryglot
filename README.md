@@ -67,12 +67,41 @@ pip install "queryglot[serve]"  # or: poetry install --extras serve
 queryglot-serve --prometheus http://localhost:9090
 ```
 
+`queryglot-serve` also serves the query playground at `/` and the embeddable
+ask-widget bundle at `/widget.js` — see "Embed the ask-widget" below.
+
 Environment variables (serve only):
 - `QUERYGLOT_SERVE_TOKEN` — bearer token for `/api/*` endpoints. Empty = open (intended for localhost/demo).
 - `QUERYGLOT_CORS_ORIGINS` — comma-separated allowed origins for embedding.
 
 Any OpenAI-compatible endpoint works as the model: OpenAI, Ollama, or your own
 LoRA behind `mlx_lm.server` — that last one is the point of `finetune/`.
+
+## Embed the ask-widget
+
+`queryglot-serve` ships a self-contained widget: a floating "Ask" pill that
+opens a search panel wired to the same schema-grounded engine as the CLI and
+MCP server. Drop one script tag on any page:
+
+```html
+<script
+  src="https://your-queryglot-host/widget.js"
+  data-api="https://your-queryglot-host"
+  data-theme="auto"
+  data-token="optional-bearer-token"
+  data-backend="optional-backend-name"
+></script>
+```
+
+- `data-api` (required) — base URL of the queryglot HTTP API.
+- `data-theme` — `light`, `dark`, or `auto` (default; follows the host page's `prefers-color-scheme`).
+- `data-token` — bearer token, only needed when the server sets `QUERYGLOT_SERVE_TOKEN`.
+- `data-backend` — pins searches to one backend instead of auto-routing.
+
+*(screenshot: the floating Ask pill and search panel, bottom-right of a host page)*
+
+See `frontend/README.md` for the build (`npm run build:all`) that packages
+the widget and playground into the Python wheel.
 
 ## Evaluation — deterministic, no LLM judge
 

@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:widget": "vite build --mode widget",
+    "build:all": "npm run build && npm run build:widget && node scripts/copy-into-package.mjs",
     "test": "vitest",
     "lint": "tsc -b --noEmit && eslint ."
   },
   "dependencies": {
     "lucide-react": "^1.38.0",
+    "preact": "^10.29.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
