@@ -47,9 +47,9 @@ splits into two plans (A; then B+C in one frontend plan).
 
 ## Phase A — serve layer
 
-**Dependency**: `fastapi` + `uvicorn` in an optional Poetry group `serve`
-(installed via `poetry install --with serve` / `pip install queryglot[serve]`).
-Core install keeps its three runtime deps. New module
+**Dependency**: `fastapi` + `uvicorn` as optional dependencies behind the
+`serve` extra (installed via `poetry install --extras serve` / `pip install
+queryglot[serve]`). Core install keeps its three runtime deps. New module
 `src/queryglot/server.py`, console script `queryglot-serve` (mirrors
 `queryglot-mcp`): builds backends from the same `QUERYGLOT_*` env vars plus
 identical CLI flags (`--prometheus`, `--elastic`, `--openapi`), lazy Engine,

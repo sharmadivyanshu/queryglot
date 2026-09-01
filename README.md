@@ -44,18 +44,12 @@ question ──> retrieve            ──> compile        ──> validate    
         "QUERYGLOT_ELASTIC": "http://localhost:9200",
         "QUERYGLOT_OPENAPI": "http://localhost:8081/api/v3",
         "QUERYGLOT_LLM_URL": "http://localhost:11434/v1",
-        "QUERYGLOT_LLM_MODEL": "qwen3.5:4b",
-        "QUERYGLOT_SERVE_TOKEN": "your-token-here",
-        "QUERYGLOT_CORS_ORIGINS": "https://example.com"
+        "QUERYGLOT_LLM_MODEL": "qwen3.5:4b"
       }
     }
   }
 }
 ```
-
-Environment variables:
-- `QUERYGLOT_SERVE_TOKEN` — bearer token for `/api/*` endpoints. Empty = open (intended for localhost/demo).
-- `QUERYGLOT_CORS_ORIGINS` — comma-separated allowed origins for embedding (queryglot-serve only).
 
 Tools exposed: `search(question, backend?)`, `list_schema(query?)`,
 `refresh_schema()`.
@@ -69,8 +63,13 @@ queryglot "p95 http request duration" --prometheus http://localhost:9090
 Or run an HTTP server with the ask-widget and query playground:
 
 ```bash
+pip install "queryglot[serve]"  # or: poetry install --extras serve
 queryglot-serve --prometheus http://localhost:9090
 ```
+
+Environment variables (serve only):
+- `QUERYGLOT_SERVE_TOKEN` — bearer token for `/api/*` endpoints. Empty = open (intended for localhost/demo).
+- `QUERYGLOT_CORS_ORIGINS` — comma-separated allowed origins for embedding.
 
 Any OpenAI-compatible endpoint works as the model: OpenAI, Ollama, or your own
 LoRA behind `mlx_lm.server` — that last one is the point of `finetune/`.
