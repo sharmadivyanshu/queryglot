@@ -53,13 +53,31 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
         if token and request.url.path.startswith("/api/"):
             supplied = request.headers.get("authorization", "")
             expected = f"Bearer {token}"
-            if not hmac.compare_digest(supplied, expected):
-                return JSONResponse({"detail": "invalid or missing bearer token"}, status_code=401)
+            # Starlette decodes headers as latin-1; compare_digest needs
+            # matching types (and rejects non-ASCII str input outright), so
+            # compare bytes rather than str.
+            supplied_bytes = supplied.encode("latin-1", "ignore")
+            expected_bytes = expected.encode("latin-1", "ignore")
+            if not hmac.compare_digest(supplied_bytes, expected_bytes):
+                response = JSONResponse(
+                    {"detail": "invalid or missing bearer token"}, status_code=401
+                )
+                # The guard runs outside CORSMiddleware, so a 401 short-circuit
+                # would otherwise skip CORS headers entirely and cross-origin
+                # widgets would see an opaque CORS failure instead of a 401.
+                origin = request.headers.get("origin")
+                if origin and cors_origins and origin in cors_origins:
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Vary"] = "Origin"
+                return response
         return await call_next(request)
 
     @app.post("/api/refresh")
     def refresh() -> dict:
-        return engine.refresh_schema()
+        try:
+            return engine.refresh_schema()
+        except Exception as exc:
+            return {"outcome": "failed", "reason": f"engine error: {exc}"}
 
     @app.get("/api/status")
     def status() -> dict:
@@ -71,8 +89,19 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="question must be non-empty")
         started = time.monotonic()
-        answer = engine.search(request.question, backend=request.backend)
-        payload = answer.as_dict()
+        try:
+            answer = engine.search(request.question, backend=request.backend)
+            payload = answer.as_dict()
+        except Exception as exc:
+            payload = {
+                "outcome": "failed",
+                "backend": request.backend or "",
+                "query": "",
+                "result": None,
+                "reason": f"engine error: {exc}",
+                "schema_used": [],
+                "attempts": 0,
+            }
         payload["elapsed_ms"] = int((time.monotonic() - started) * 1000)
         return payload
 

@@ -113,3 +113,63 @@ def test_root_404_hints_when_unbuilt():
     response = client_for().get("/")
     assert response.status_code == 404
     assert "frontend" in response.json()["detail"]
+
+
+def test_401_includes_cors_headers_for_configured_origin(monkeypatch):
+    monkeypatch.setenv("QUERYGLOT_SERVE_TOKEN", "sekrit")
+    engine = Engine([FakeBackend()], llm=ScriptedLLM("GOOD"))
+    app = create_app(engine, cors_origins=["https://customer.example"])
+    client = TestClient(app)
+
+    response = client.get("/api/status", headers={"Origin": "https://customer.example"})
+
+    assert response.status_code == 401
+    assert response.headers["access-control-allow-origin"] == "https://customer.example"
+
+
+def test_non_ascii_authorization_header_is_401_not_500(monkeypatch):
+    monkeypatch.setenv("QUERYGLOT_SERVE_TOKEN", "sekrit")
+    c = client_for()
+
+    # httpx encodes str header values as ascii; send the raw latin-1 bytes
+    # directly so the wire header actually carries the non-ASCII byte, same
+    # as what Starlette would decode back into "Bearer café" server-side.
+    response = c.get("/api/status", headers={"Authorization": "Bearer café".encode("latin-1")})
+
+    assert response.status_code == 401
+
+
+class RaisingLLM:
+    def complete(self, system: str, prompt: str) -> str:
+        raise OSError("connection refused: LLM endpoint down")
+
+
+class IntrospectingBackend(FakeBackend):
+    """FakeBackend whose introspect() actually returns schema, so retrieval
+    clears the gate and the graph reaches compile (i.e. calls the LLM)."""
+
+    def introspect(self):
+        from queryglot.catalog import SchemaItem
+
+        return [
+            SchemaItem(
+                name="http_server_request_duration_seconds",
+                backend="prometheus",
+                kind="metric",
+                type="histogram",
+                help="HTTP request latency",
+                labels=("route", "method", "status"),
+            )
+        ]
+
+
+def test_search_engine_exception_returns_failed_outcome_not_500():
+    engine = Engine([IntrospectingBackend()], llm=RaisingLLM())
+    response = TestClient(create_app(engine)).post(
+        "/api/search", json={"question": "p95 latency by route"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "failed"
+    assert "connection refused" in body["reason"]
+    assert isinstance(body["elapsed_ms"], int)

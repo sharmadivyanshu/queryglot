@@ -99,7 +99,7 @@ def test_off_schema_question_abstains_live():
     assert retriever.search("blockchain wallet", backend="prometheus") == []
 
 
-def test_serve_layer_end_to_end(backend):
+def test_serve_layer_end_to_end():
     from fastapi.testclient import TestClient
 
     from queryglot.server import create_app
