@@ -171,5 +171,8 @@ def test_search_engine_exception_returns_failed_outcome_not_500():
     assert response.status_code == 200
     body = response.json()
     assert body["outcome"] == "failed"
-    assert "connection refused" in body["reason"]
+    # exception class name is fine to expose; the raw exception text is not
+    # (e.g. urllib error messages embed the internal LLM endpoint URL)
+    assert "OSError" in body["reason"]
+    assert "connection refused" not in body["reason"]
     assert isinstance(body["elapsed_ms"], int)

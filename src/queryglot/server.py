@@ -10,6 +10,7 @@ like mcp_server.py.
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 import time
 from pathlib import Path
@@ -21,6 +22,8 @@ from pydantic import BaseModel
 
 from . import __version__
 from .engine import Engine
+
+logger = logging.getLogger("queryglot.server")
 
 
 class SearchRequest(BaseModel):
@@ -77,7 +80,11 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
         try:
             return engine.refresh_schema()
         except Exception as exc:
-            return {"outcome": "failed", "reason": f"engine error: {exc}"}
+            logger.exception("refresh failed")
+            return {
+                "outcome": "failed",
+                "reason": f"engine error ({type(exc).__name__}) — details in server logs",
+            }
 
     @app.get("/api/status")
     def status() -> dict:
@@ -93,12 +100,13 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
             answer = engine.search(request.question, backend=request.backend)
             payload = answer.as_dict()
         except Exception as exc:
+            logger.exception("search failed")
             payload = {
                 "outcome": "failed",
                 "backend": request.backend or "",
                 "query": "",
                 "result": None,
-                "reason": f"engine error: {exc}",
+                "reason": f"engine error ({type(exc).__name__}) — details in server logs",
                 "schema_used": [],
                 "attempts": 0,
             }
