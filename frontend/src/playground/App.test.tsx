@@ -12,7 +12,7 @@ test('renders status chip and schema rail from api', async () => {
       json: async () =>
         url.includes('/api/status')
           ? { backends: { prometheus: 312 }, version: '0.1.0' }
-          : { items: ['go_goroutines (gauge)'] },
+          : { items: ['go_goroutines'], fields: [{ name: 'go_goroutines', type: 'gauge', kind: 'metric', labels: [], help: '', backend: 'prometheus' }] },
     })),
   )
   render(<App />)
@@ -33,7 +33,14 @@ test('TracePanel shows real telemetry after an abstained answer, not dashes', as
         }
       }
       if (url.includes('/api/schema')) {
-        return { ok: true, status: 200, json: async () => ({ items: ['go_goroutines (gauge)'] }) }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: ['go_goroutines'],
+            fields: [{ name: 'go_goroutines', type: 'gauge', kind: 'metric', labels: [], help: '', backend: 'prometheus' }],
+          }),
+        }
       }
       return {
         ok: true,
@@ -79,7 +86,11 @@ test('cmd+k resets the inline panel to idle after an answer', async () => {
     ok: true, status: 200,
     json: async () => {
       if (String(url).includes('/api/status')) return { backends: { prometheus: 3 }, version: '0.1.0' }
-      if (String(url).includes('/api/schema')) return { items: ['go_goroutines (gauge)'] }
+      if (String(url).includes('/api/schema'))
+        return {
+          items: ['go_goroutines'],
+          fields: [{ name: 'go_goroutines', type: 'gauge', kind: 'metric', labels: [], help: '', backend: 'prometheus' }],
+        }
       return { outcome: 'answered', backend: 'prometheus', query: 'up', result: { resultType: 'vector', result: [] }, reason: '', schema_used: ['up'], attempts: 1, elapsed_ms: 5 }
     },
   })))

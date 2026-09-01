@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ThemeProvider } from '../ui/theme'
 import { createClient } from '../lib/api'
-import type { SearchResponse, StatusResponse } from '../lib/api'
+import type { SchemaField, SearchResponse, StatusResponse } from '../lib/api'
 import { useAsk } from '../lib/useAsk'
 import type { AskState } from '../lib/useAsk'
 import { Panel } from '../widget/Panel'
@@ -11,7 +11,11 @@ import { TracePanel } from './TracePanel'
 
 /** v1's static default list — same as the widget's. */
 const SUGGESTIONS = ['error rate in the last hour', 'memory usage right now', 'slowest routes today']
-const SCHEMA_LIMIT = 50
+const SCHEMA_LIMIT = 500
+
+function totalMetricsOf(status: StatusResponse): number {
+  return Object.values(status.backends).reduce((sum, count) => sum + count, 0)
+}
 
 function SearchIcon() {
   return (
@@ -84,7 +88,7 @@ function Playground() {
   }, [reset])
   const [status, setStatus] = useState<StatusResponse | null>(null)
   const [statusUnreachable, setStatusUnreachable] = useState(false)
-  const [schemaItems, setSchemaItems] = useState<string[]>([])
+  const [schemaFields, setSchemaFields] = useState<SchemaField[]>([])
   const [schemaUnreachable, setSchemaUnreachable] = useState(false)
 
   useEffect(() => {
@@ -94,7 +98,7 @@ function Playground() {
       .catch(() => setStatusUnreachable(true))
     client
       .schema('', SCHEMA_LIMIT)
-      .then((response) => setSchemaItems(response.items))
+      .then((response) => setSchemaFields(response.fields))
       .catch(() => setSchemaUnreachable(true))
   }, [client])
 
@@ -104,7 +108,14 @@ function Playground() {
     <div className="flex h-screen w-screen flex-col bg-qg-bg text-qg-text">
       <TopBar status={status} unreachable={statusUnreachable} />
       <div className="flex min-h-0 flex-1">
-        <SchemaRail items={schemaItems} status={status} unreachable={schemaUnreachable} />
+        <SchemaRail
+          fields={schemaFields}
+          total={status ? totalMetricsOf(status) : undefined}
+          status={status}
+          unreachable={schemaUnreachable}
+          lastAnswerNames={[]}
+          onAskAbout={() => {}}
+        />
         <main className="flex min-w-0 flex-1 flex-col gap-[18px] px-8 py-7">
           <div className="flex flex-col gap-1.5">
             <h1 className="font-disp text-[23px] font-bold tracking-[-0.015em] text-qg-text">
