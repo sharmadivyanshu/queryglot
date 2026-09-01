@@ -24,6 +24,12 @@ test('mount attaches a shadow root with themed scope and pill', () => {
   expect(host.shadowRoot!.textContent).toContain('Ask')
 })
 
+test('mount is idempotent — a second call does not create a second host', () => {
+  mount({ api: 'http://x', theme: 'light' })
+  mount({ api: 'http://x', theme: 'light' })
+  expect(document.querySelectorAll('#queryglot-root').length).toBe(1)
+})
+
 test('cmd+k opens the panel, esc closes it', async () => {
   mount({ api: 'http://x', theme: 'light' })
   const root = document.getElementById('queryglot-root')!.shadowRoot!

@@ -172,6 +172,11 @@ function Widget({ config }: { config: WidgetConfig }) {
 
 /** Mounts the widget: an open shadow root under `#queryglot-root`, tokens + panel styles injected first, themed scope, floating pill, and the four-state panel wired to `useAsk`. */
 export function mount(config: WidgetConfig): void {
+  if (document.getElementById('queryglot-root')) {
+    console.warn('queryglot: already mounted, ignoring duplicate mount() call')
+    return
+  }
+
   const host = document.createElement('div')
   host.id = 'queryglot-root'
   document.body.appendChild(host)
