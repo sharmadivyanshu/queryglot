@@ -20,3 +20,7 @@ CLAUDE.md
 HANDOFF.md
 PROJECT_CORE.md
 .remember/
+
+# built static assets (playground/widget)
+src/queryglot/_static/*
+!src/queryglot/_static/.gitkeep

@@ -12,9 +12,11 @@ from __future__ import annotations
 import hmac
 import os
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import __version__
@@ -82,4 +84,80 @@ def create_app(engine: Engine, cors_origins: list[str] | None = None) -> FastAPI
             items = [i for i in items if needle in i.name.lower() or needle in i.help.lower()]
         return {"items": [item.render() for item in items[:limit]]}
 
+    static_dir = Path(__file__).parent / "_static"
+
+    @app.get("/widget.js", include_in_schema=False)
+    def widget_js() -> FileResponse:
+        bundle = static_dir / "widget.js"
+        if not bundle.exists():
+            raise HTTPException(status_code=404, detail="widget not built — see frontend/README.md")
+        return FileResponse(
+            bundle,
+            media_type="text/javascript",
+            headers={"Cache-Control": "no-cache"},
+        )
+
+    @app.get("/", include_in_schema=False)
+    def index() -> FileResponse:
+        page = static_dir / "index.html"
+        if not page.exists():
+            raise HTTPException(
+                status_code=404, detail="playground not built — see frontend/README.md"
+            )
+        return FileResponse(page)
+
+    if (static_dir / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+
     return app
+
+
+def main() -> None:
+    import argparse
+
+    import uvicorn
+
+    from .backends import Backend
+    from .backends.elastic import ElasticBackend
+    from .backends.openapi import OpenAPIBackend, headers_from_env
+    from .backends.prometheus import PrometheusBackend
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--prometheus", default=os.getenv("QUERYGLOT_PROMETHEUS"))
+    parser.add_argument("--elastic", default=os.getenv("QUERYGLOT_ELASTIC"))
+    parser.add_argument("--openapi", default=os.getenv("QUERYGLOT_OPENAPI"))
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument(
+        "--cors-origin",
+        action="append",
+        default=None,
+        help=(
+            "allowed origin for embedding (repeatable); "
+            "env QUERYGLOT_CORS_ORIGINS (comma-separated)"
+        ),
+    )
+    args = parser.parse_args()
+
+    backends: list[Backend] = []
+    if args.prometheus:
+        backends.append(PrometheusBackend(args.prometheus))
+    if args.elastic:
+        backends.append(ElasticBackend(args.elastic, os.getenv("QUERYGLOT_ELASTIC_INDEX", "*")))
+    if args.openapi:
+        backends.append(OpenAPIBackend(args.openapi, headers=headers_from_env()))
+    if not backends:
+        parser.error("configure at least one backend (--prometheus / --elastic / --openapi)")
+
+    origins = args.cors_origin or [
+        o.strip() for o in os.getenv("QUERYGLOT_CORS_ORIGINS", "").split(",") if o.strip()
+    ]
+    uvicorn.run(
+        create_app(Engine(backends), cors_origins=origins or None),
+        host=args.host,
+        port=args.port,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -44,12 +44,18 @@ question ──> retrieve            ──> compile        ──> validate    
         "QUERYGLOT_ELASTIC": "http://localhost:9200",
         "QUERYGLOT_OPENAPI": "http://localhost:8081/api/v3",
         "QUERYGLOT_LLM_URL": "http://localhost:11434/v1",
-        "QUERYGLOT_LLM_MODEL": "qwen3.5:4b"
+        "QUERYGLOT_LLM_MODEL": "qwen3.5:4b",
+        "QUERYGLOT_SERVE_TOKEN": "your-token-here",
+        "QUERYGLOT_CORS_ORIGINS": "https://example.com"
       }
     }
   }
 }
 ```
+
+Environment variables:
+- `QUERYGLOT_SERVE_TOKEN` — bearer token for `/api/*` endpoints. Empty = open (intended for localhost/demo).
+- `QUERYGLOT_CORS_ORIGINS` — comma-separated allowed origins for embedding (queryglot-serve only).
 
 Tools exposed: `search(question, backend?)`, `list_schema(query?)`,
 `refresh_schema()`.
@@ -58,6 +64,12 @@ Or the CLI:
 
 ```bash
 queryglot "p95 http request duration" --prometheus http://localhost:9090
+```
+
+Or run an HTTP server with the ask-widget and query playground:
+
+```bash
+queryglot-serve --prometheus http://localhost:9090
 ```
 
 Any OpenAI-compatible endpoint works as the model: OpenAI, Ollama, or your own

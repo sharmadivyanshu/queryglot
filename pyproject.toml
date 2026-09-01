@@ -11,6 +11,7 @@ packages = [{ include = "queryglot", from = "src" }]
 [tool.poetry.scripts]
 queryglot = "queryglot.cli:main"
 queryglot-mcp = "queryglot.mcp_server:main"
+queryglot-serve = "queryglot.server:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"

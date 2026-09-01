@@ -97,3 +97,18 @@ def test_off_schema_question_abstains_live():
         assert answer.query != "SHOULD_NOT_RUN"
     retriever = SchemaRetriever(engine.catalog)
     assert retriever.search("blockchain wallet", backend="prometheus") == []
+
+
+def test_serve_layer_end_to_end(backend):
+    from fastapi.testclient import TestClient
+
+    from queryglot.server import create_app
+    from tests.conftest import ScriptedLLM
+
+    engine = Engine([PrometheusBackend(PROM)], llm=ScriptedLLM("process_resident_memory_bytes"))
+    client = TestClient(create_app(engine))
+    body = client.post(
+        "/api/search", json={"question": "how much memory is the process using right now?"}
+    ).json()
+    assert body["outcome"] == "answered"
+    assert "process_resident_memory_bytes" in body["query"]

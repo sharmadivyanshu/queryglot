@@ -101,3 +101,15 @@ def test_cors_preflight_works_with_bearer_token(monkeypatch):
     # Plain GET without bearer still 401s
     status_response = client.get("/api/status")
     assert status_response.status_code == 401
+
+
+def test_widget_js_404_hints_when_unbuilt():
+    response = client_for().get("/widget.js")
+    assert response.status_code == 404
+    assert "frontend" in response.json()["detail"]
+
+
+def test_root_404_hints_when_unbuilt():
+    response = client_for().get("/")
+    assert response.status_code == 404
+    assert "frontend" in response.json()["detail"]
