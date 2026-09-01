@@ -1,5 +1,6 @@
 """Retrieval: the vocabulary gap is the whole test."""
 
+from queryglot.catalog import Catalog, SchemaItem
 from queryglot.retrieve import SchemaRetriever, tokenize
 
 
@@ -63,3 +64,30 @@ def test_parse_completion_null_content_and_malformed():
     assert parse_completion({"choices": [{"message": {"content": None}}]}) == ""
     assert parse_completion({"choices": []}) == ""
     assert parse_completion({}) == ""
+
+
+def test_endpoint_synonym_beats_label_coincidence():
+    """Observed failure: 'endpoint' matched the Consul SD metric's label and
+    outranked the http duration metric (labels: handler). The synonym entry
+    must steer 'endpoint' questions to handler/route-labeled metrics."""
+    c = Catalog()
+    c.add(
+        SchemaItem(
+            name="prometheus_http_request_duration_seconds",
+            backend="prometheus",
+            kind="metric",
+            type="histogram",
+            help="Histogram of latencies for HTTP requests",
+            labels=("handler",),
+        ),
+        SchemaItem(
+            name="prometheus_sd_consul_rpc_duration_seconds",
+            backend="prometheus",
+            kind="metric",
+            type="summary",
+            help="The duration of a Consul RPC call in seconds.",
+            labels=("call", "endpoint"),
+        ),
+    )
+    hits = SchemaRetriever(c).search("which endpoint is causing the max latency?")
+    assert hits[0][0].name == "prometheus_http_request_duration_seconds"

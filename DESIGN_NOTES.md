@@ -392,6 +392,30 @@ fidelity), slightly taller than the artboards.
 authority), every collision needs an explicit ruling — silence always
 resolves toward whichever authority the implementer is looking at.
 
+### 17. "Which endpoint is causing the max latency?" — one question, four bugs deep
+
+A live user question produced a fluent, valid, executed answer that was
+wrong four ways at once. (a) Retrieval sent "endpoint" to a dead Consul
+metric because BM25 matched its LABEL name; fixed with synonym entries
+(endpoint→handler/route/path, latency→latencies) — the table doing exactly
+what it was designed for: growing from observed failures. (b) The model
+then grouped `by (endpoint)` on a metric whose label is `handler` — and
+PromQL considers grouping by an ABSENT label valid, silently collapsing
+every series into one anonymous number; the server can never catch it, so
+validate() grew an unknown-grouping-label check, the metric check's natural
+sibling. (c) The check didn't fire at first: histograms have no series
+under their base name, so label introspection had come back empty — the
+bucket-series fallback fixed the blind spot. (d) The repair then picked
+`app, instance, job` over the right label, so the error message now
+consults SYNONYMS to say "did you mean 'handler'?" — a deterministic hint,
+not a model's guess. Final behavior: attempts 2, grouped by handler, the
+max emphasized.
+
+**Lesson:** wrong-but-plausible failures stack. Each layer's fix was small,
+deterministic, and testable — and none of them would have been found
+without asking a real question against a real server and refusing to accept
+a fluent answer.
+
 ---
 
 ## Questions to be able to answer

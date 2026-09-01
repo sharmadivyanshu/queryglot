@@ -128,6 +128,20 @@ def metric_candidates(query: str) -> set[str]:
     }
 
 
+_GROUPING = re.compile(r"\b(?:by|without)\s*\(([^)]*)\)")
+
+# Labels synthesized by PromQL itself, never present in series metadata.
+_SYNTHETIC_LABELS = frozenset(["le", "quantile"])
+
+
+def grouping_labels(query: str) -> set[str]:
+    """Label names inside by (...) / without (...) clauses."""
+    labels: set[str] = set()
+    for group in _GROUPING.findall(query):
+        labels.update(part.strip() for part in group.split(",") if part.strip())
+    return labels
+
+
 class PrometheusBackend:
     name = "prometheus"
     language = "PromQL"
@@ -142,6 +156,7 @@ class PrometheusBackend:
         self.transport = transport or urllib_transport
         self.label_lookup_limit = label_lookup_limit
         self._known: set[str] = set()
+        self._known_labels: dict[str, tuple[str, ...]] = {}
 
     # ---- introspect --------------------------------------------------------
 
@@ -161,6 +176,7 @@ class PrometheusBackend:
                 )
             )
         self._known = {i.name for i in items}
+        self._known_labels = {i.name: i.labels for i in items}
         return items
 
     def _label_keys(self, metric_name: str) -> tuple[str, ...]:
@@ -176,6 +192,18 @@ class PrometheusBackend:
         except (ConnectionError, ValueError):
             return ()
         keys = {k for s in series for k in s if k != "__name__"}
+        if not keys:
+            # Histograms/summaries have no series under the base name — the
+            # bucket series carry the real label set (plus the synthetic le).
+            encoded_bucket = urllib.parse.quote(f"{metric_name}_bucket")
+            try:
+                series = get_json(
+                    self.transport,
+                    f"{self.base_url}/api/v1/series?match[]={encoded_bucket}&limit=5",
+                ).get("data", [])
+            except (ConnectionError, ValueError):
+                return ()
+            keys = {k for s in series for k in s if k != "__name__"}
         return tuple(sorted(keys))
 
     # ---- validate ----------------------------------------------------------
@@ -206,6 +234,39 @@ class PrometheusBackend:
                         "catalog; use only metrics from the schema provided"
                     ),
                 )
+
+            # Grouping by an ABSENT label is valid PromQL — it silently
+            # collapses every series into one group, which reads as an answer
+            # while answering nothing. The server cannot catch it; the
+            # introspected label sets can, best-effort: only enforced when
+            # every referenced metric has known labels.
+            def base(name: str) -> str:
+                stripped = re.sub(r"_(bucket|sum|count)$", "", name)
+                return stripped if stripped in self._known else name
+
+            referenced = {base(n) for n in metric_candidates(query)}
+            known_label_sets = [self._known_labels.get(n, ()) for n in referenced]
+            if referenced and all(known_label_sets):
+                allowed = _SYNTHETIC_LABELS.union(*known_label_sets)
+                bad = {g for g in grouping_labels(query) if g not in allowed}
+                if bad:
+                    from ..retrieve import expand
+
+                    hints = [
+                        f"did you mean {hit!r} instead of {g!r}?"
+                        for g in sorted(bad)
+                        for hit in [next((s for s in expand([g]) if s in allowed), None)]
+                        if hit
+                    ]
+                    hint = f" {' '.join(hints)}" if hints else ""
+                    return Validation(
+                        ok=False,
+                        error=(
+                            f"unknown grouping label(s) {sorted(bad)} for the metrics in "
+                            f"this query — known labels: "
+                            f"{sorted(set(allowed) - _SYNTHETIC_LABELS)}.{hint}"
+                        ),
+                    )
         return Validation(ok=True)
 
     # ---- execute -----------------------------------------------------------

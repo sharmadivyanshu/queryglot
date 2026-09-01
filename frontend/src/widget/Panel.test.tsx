@@ -74,3 +74,33 @@ test('answered renders label/value rows for the wrapped prometheus vector shape'
   expect(screen.getByText('36')).toBeDefined()
   expect(screen.queryByText(/resultType/)).toBeNull()
 })
+
+test('answered with zero rows says so instead of blank success', () => {
+  const empty = {
+    ...answered,
+    answer: { ...answered.answer, result: { resultType: 'vector', result: [] } },
+  }
+  render(<Panel state={empty} onAsk={noop} onClose={noop} suggestions={[]} />)
+  expect(screen.getByText(/returned no data/i)).toBeDefined()
+})
+
+test('vector rows render sorted descending with the max first', () => {
+  const multi = {
+    ...answered,
+    answer: {
+      ...answered.answer,
+      result: {
+        resultType: 'vector',
+        result: [
+          { metric: { handler: '/small' }, value: [0, '0.05'] },
+          { metric: { handler: '/big' }, value: [0, '0.9'] },
+          { metric: { handler: '/mid' }, value: [0, '0.4'] },
+        ],
+      },
+    },
+  }
+  render(<Panel state={multi} onAsk={noop} onClose={noop} suggestions={[]} />)
+  const rows = screen.getAllByText(/\/(small|big|mid)/).map((el) => el.textContent)
+  expect(rows[0]).toContain('/big')
+  expect(rows[2]).toContain('/small')
+})

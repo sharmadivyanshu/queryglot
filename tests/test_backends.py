@@ -197,3 +197,98 @@ def test_prometheus_validate_accepts_histogram_series_suffixes():
     assert backend.validate("rate(req_duration_bucket[5m])").ok
     assert backend.validate("rate(req_duration_sum[5m])").ok
     assert not backend.validate("rate(other_bucket[5m])").ok
+
+
+def test_validate_rejects_grouping_by_unknown_label():
+    """Absent-label grouping is valid PromQL (it silently collapses groups),
+    so the server can't catch it — the catalog can. Observed live: the model
+    grouped by (endpoint) on a metric whose label is handler."""
+    backend = PrometheusBackend(
+        "http://prom",
+        transport=Recorder(
+            {
+                "/api/v1/metadata": (
+                    200,
+                    {
+                        "status": "success",
+                        "data": {
+                            "prometheus_http_request_duration_seconds": [
+                                {"type": "histogram", "help": "latencies"}
+                            ]
+                        },
+                    },
+                ),
+                "/api/v1/series": (
+                    200,
+                    {
+                        "status": "success",
+                        "data": [{"__name__": "x", "handler": "/", "instance": "i", "job": "j"}],
+                    },
+                ),
+                "/api/v1/format_query": (200, {"status": "success", "data": "ok"}),
+            }
+        ),
+    )
+    backend.introspect()
+    verdict = backend.validate(
+        "topk(5, sum by (endpoint) (rate(prometheus_http_request_duration_seconds_bucket[5m])))"
+    )
+    assert not verdict.ok
+    assert "endpoint" in verdict.error and "handler" in verdict.error
+    # the SYNONYMS table powers a deterministic suggestion
+    assert "did you mean" in verdict.error
+
+    # known label + the histogram-synthetic le are both fine
+    assert backend.validate(
+        "histogram_quantile(0.95, sum by (le, handler) "
+        "(rate(prometheus_http_request_duration_seconds_bucket[5m])))"
+    ).ok
+
+
+def test_validate_skips_label_check_when_labels_unknown():
+    backend = PrometheusBackend(
+        "http://prom",
+        transport=Recorder(
+            {
+                "/api/v1/metadata": (
+                    200,
+                    {
+                        "status": "success",
+                        "data": {"some_metric": [{"type": "counter", "help": ""}]},
+                    },
+                ),
+                "/api/v1/format_query": (200, {"status": "success", "data": "ok"}),
+            }
+        ),
+        label_lookup_limit=0,
+    )
+    backend.introspect()
+    assert backend.validate("sum by (anything) (rate(some_metric[5m]))").ok
+
+
+def test_histogram_labels_come_from_bucket_series():
+    """Histograms have no series under the base name — only _bucket/_sum/_count.
+    Label introspection must fall back to the bucket series, or every
+    histogram has unknown labels and the grouping check never fires."""
+
+    def transport(method, url, body, headers):
+        if "/api/v1/metadata" in url:
+            return 200, json.dumps(
+                {"status": "success", "data": {"h_seconds": [{"type": "histogram", "help": ""}]}}
+            )
+        if "/api/v1/series" in url and "h_seconds_bucket" in url:
+            return 200, json.dumps(
+                {
+                    "status": "success",
+                    "data": [{"__name__": "h_seconds_bucket", "handler": "/", "le": "0.5"}],
+                }
+            )
+        if "/api/v1/series" in url:
+            return 200, json.dumps({"status": "success", "data": []})
+        return 200, json.dumps({"status": "success", "data": "ok"})
+
+    backend = PrometheusBackend("http://prom", transport=transport)
+    items = backend.introspect()
+    assert items[0].labels == ("handler", "le")
+    verdict = backend.validate("sum by (endpoint) (rate(h_seconds_bucket[5m]))")
+    assert not verdict.ok and "endpoint" in verdict.error

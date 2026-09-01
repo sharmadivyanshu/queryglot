@@ -22,8 +22,8 @@ _TOKEN = re.compile(r"[a-z0-9]+")
 # exporters name things. Small, auditable, and grown from eval failures —
 # not a taxonomy imported wholesale.
 SYNONYMS: dict[str, list[str]] = {
-    "latency": ["duration", "seconds", "time"],
-    "slow": ["duration", "seconds", "latency"],
+    "latency": ["duration", "seconds", "time", "latencies"],
+    "slow": ["duration", "seconds", "latency", "latencies"],
     "errors": ["failed", "errors", "error", "5xx", "exceptions"],
     "failures": ["failed", "errors", "error"],
     "traffic": ["requests", "http", "rate"],
@@ -34,6 +34,9 @@ SYNONYMS: dict[str, list[str]] = {
     "restarts": ["restarts", "restart", "started"],
     "queue": ["queue", "pending", "backlog"],
     "connections": ["connections", "open", "sockets"],
+    # observed failure 2026-09-01: "endpoint" matched a dead SD metric's label
+    "endpoint": ["handler", "route", "path"],
+    "endpoints": ["handler", "route", "path"],
 }
 
 
