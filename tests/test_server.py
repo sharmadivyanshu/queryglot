@@ -278,3 +278,56 @@ def test_cache_hit_reports_age_in_seconds():
     assert hit["cached"] is True
     assert isinstance(hit["cache_age_s"], int)
     assert hit["cache_age_s"] >= 0
+
+
+def test_search_rejects_non_preset_windows():
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine))
+    response = client.post("/api/search", json={"question": "q", "window_minutes": 7})
+    assert response.status_code == 400
+    assert "window" in response.json()["detail"]
+
+
+def test_cache_keys_separate_windows():
+    llm = CountingLLM("GOOD")
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=llm)
+    client = TestClient(create_app(engine))
+    client.post("/api/search", json={"question": "p95 latency by route"})
+    calls = len(llm.calls)
+    windowed = client.post(
+        "/api/search", json={"question": "p95 latency by route", "window_minutes": 30}
+    ).json()
+    assert "cached" not in windowed  # different window → not a cache hit
+    assert len(llm.calls) > calls
+    hit = client.post(
+        "/api/search", json={"question": "p95 latency by route", "window_minutes": 30}
+    ).json()
+    assert hit["cached"] is True  # same window → hit
+
+
+def test_summary_downsamples_matrix_results():
+    class RecordingLLM:
+        def __init__(self):
+            self.prompts: list[tuple[str, str]] = []
+
+        def complete(self, system: str, prompt: str) -> str:
+            self.prompts.append((system, prompt))
+            return "peaked earlier."
+
+    llm = RecordingLLM()
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine, summary_llm=llm))
+    matrix = {
+        "resultType": "matrix",
+        "result": [
+            {"metric": {"handler": "/api"}, "values": [[100, "1.0"], [130, "84.2"], [160, "31.5"]]},
+        ],
+    }
+    body = client.post(
+        "/api/summary",
+        json={"question": "request rate", "query": "rate(x[1m])", "result": matrix},
+    ).json()
+    assert body["summary"] == "peaked earlier."
+    prompt = llm.prompts[0][1]
+    assert "84.2" in prompt and "31.5" in prompt  # peak + latest survive
+    assert '"values"' not in prompt  # raw matrix did not
