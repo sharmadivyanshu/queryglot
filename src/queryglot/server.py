@@ -12,6 +12,7 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import math
 import os
 import time
 from pathlib import Path
@@ -57,12 +58,28 @@ CACHE_MAX_ENTRIES = 256
 def _downsample_matrix(result: object) -> object:
     """Matrix payloads are too big for an 80-token summary prompt. Reduce each
     series to what a one-sentence answer can actually use: latest, peak, and
-    when the peak happened. Non-matrix results pass through untouched."""
+    when the peak happened. Non-matrix results pass through untouched.
+
+    Defensively skips non-numeric values and NaN samples to avoid 500 errors
+    and incorrect peak selection."""
     if not (isinstance(result, dict) and result.get("resultType") == "matrix"):
         return result
     series_out = []
     for series in result.get("result", []):
-        values = [(float(t), float(v)) for t, v in series.get("values", []) if v is not None]
+        values = []
+        for t, v in series.get("values", []):
+            if v is None:
+                continue
+            try:
+                t_float = float(t)
+                v_float = float(v)
+                # Skip NaN values — they poison peak selection
+                if math.isnan(t_float) or math.isnan(v_float):
+                    continue
+                values.append((t_float, v_float))
+            except (ValueError, TypeError):
+                # Skip points with unparseable timestamps or values
+                continue
         if not values:
             continue
         peak_t, peak_v = max(values, key=lambda tv: tv[1])
