@@ -369,7 +369,10 @@ def test_summary_handles_non_numeric_matrix_values():
 
 
 def test_summary_handles_nan_in_matrix_values():
-    """NaN samples should be skipped; peak is the max FINITE value."""
+    """NaN samples should be skipped; peak is the max FINITE value.
+
+    NaN becomes the initial max() candidate when first in the list, making
+    it the unchallenged peak without explicit isnan filtering."""
 
     class RecordingLLM:
         def __init__(self):
@@ -387,9 +390,9 @@ def test_summary_handles_nan_in_matrix_values():
         "result": [
             {
                 "metric": {"handler": "/api"},
-                # NaN at the end would win by position in an order-dependent max()
-                # but should be filtered out by isnan check
-                "values": [[100, "50.0"], [130, "NaN"], [160, "25.0"]],
+                # NaN as first element becomes unchallenged initial candidate
+                # in max(); isnan check must filter it out
+                "values": [[100, "NaN"], [130, "50.0"], [160, "25.0"]],
             },
         ],
     }
