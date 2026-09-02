@@ -1,10 +1,30 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { Panel } from './Panel'
 
 const noop = () => {}
 const answered = { kind: 'answered' as const, answer: { outcome: 'answered' as const, backend: 'prometheus',
   query: 'histogram_quantile(0.95, rate(x[5m]))', result: [{ metric: { route: '/api/checkout' }, value: [0, '0.412'] }],
   reason: '', schema_used: ['a', 'b'], attempts: 1, elapsed_ms: 2100 } }
+
+function answeredResponse() {
+  return {
+    outcome: 'answered' as const,
+    backend: 'prometheus',
+    query: 'histogram_quantile(0.95, rate(x[5m]))',
+    result: {
+      resultType: 'vector',
+      result: [
+        { metric: { route: '/api/checkout' }, value: [0, '0.9'] },
+        { metric: { route: '/api/cart' }, value: [0, '0.4'] },
+      ],
+    },
+    reason: '',
+    schema_used: ['a', 'b'],
+    attempts: 1,
+    elapsed_ms: 2100,
+  }
+}
 
 test('idle shows suggestions and grounding note', () => {
   render(<Panel state={{ kind: 'idle' }} onAsk={noop} onClose={noop} suggestions={['error rate in the last hour']} />)
@@ -103,4 +123,67 @@ test('vector rows render sorted descending with the max first', () => {
   const rows = screen.getAllByText(/\/(small|big|mid)/).map((el) => el.textContent)
   expect(rows[0]).toContain('/big')
   expect(rows[2]).toContain('/small')
+})
+
+it('renders resultView output with a chart/rows toggle, and rows when toggled', () => {
+  const answer = answeredResponse()  // reuse the file's existing answered fixture builder
+  render(
+    <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => <div data-testid="custom-chart" />} />,
+  )
+  expect(screen.getByTestId('custom-chart')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'rows' }))
+  expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
+})
+
+it('shows no toggle and plain rows when resultView is absent or returns null', () => {
+  const answer = answeredResponse()
+  render(
+    <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => null} />,
+  )
+  expect(screen.queryByRole('button', { name: 'chart' })).not.toBeInTheDocument()
+})
+
+it('re-runs the question fresh from the header refresh button', () => {
+  const onAsk = vi.fn()
+  // Panel keeps the asked question in local state: submit a suggestion while
+  // idle, then rerender the same instance in the answered state.
+  const { rerender } = render(
+    <Panel state={{ kind: 'idle' }} onAsk={onAsk} onClose={noop} suggestions={['slowest routes today']} />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: /slowest routes today/ }))
+  rerender(
+    <Panel state={{ kind: 'answered', answer: answeredResponse() }} onAsk={onAsk} onClose={noop} suggestions={[]} />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 're-run this question' }))
+  expect(onAsk).toHaveBeenLastCalledWith('slowest routes today', { fresh: true })
+})
+
+it('hides the refresh button when no question was asked through the panel', () => {
+  render(<Panel state={{ kind: 'answered', answer: answeredResponse() }} onAsk={noop} onClose={noop} suggestions={[]} />)
+  expect(screen.queryByRole('button', { name: 're-run this question' })).not.toBeInTheDocument()
+})
+
+it('shows cache age on cached answers', () => {
+  const answer = { ...answeredResponse(), cached: true, cache_age_s: 42 }
+  render(<Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]} />)
+  expect(screen.getByText(/cached 42s ago/)).toBeInTheDocument()
+})
+
+it('preserves the chart/rows toggle selection when a summary arrives', () => {
+  const answer = answeredResponse()
+  const { rerender } = render(
+    <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => <div data-testid="custom-chart" />} />,
+  )
+  // Click to switch to rows
+  fireEvent.click(screen.getByRole('button', { name: 'rows' }))
+  expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
+  // Rerender with the same answer but a new summary added — should keep rows selected
+  rerender(
+    <Panel state={{ kind: 'answered', answer, summary: 'The answer is 42' }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => <div data-testid="custom-chart" />} />,
+  )
+  expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
 })

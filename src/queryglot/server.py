@@ -31,6 +31,7 @@ logger = logging.getLogger("queryglot.server")
 class SearchRequest(BaseModel):
     question: str
     backend: str | None = None
+    fresh: bool = False
 
 
 class SummaryRequest(BaseModel):
@@ -126,9 +127,9 @@ def create_app(
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="question must be non-empty")
         key = cache_key(request)
-        hit = search_cache.get(key)
+        hit = None if request.fresh else search_cache.get(key)
         if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
-            return {**hit[1], "cached": True}
+            return {**hit[1], "cached": True, "cache_age_s": int(time.monotonic() - hit[0])}
         started = time.monotonic()
         try:
             answer = engine.search(request.question, backend=request.backend)
@@ -157,7 +158,21 @@ def create_app(
         if query:
             needle = query.lower()
             items = [i for i in items if needle in i.name.lower() or needle in i.help.lower()]
-        return {"items": [item.render() for item in items[:limit]]}
+        sliced = items[:limit]
+        return {
+            "items": [item.render() for item in sliced],
+            "fields": [
+                {
+                    "name": item.name,
+                    "type": item.type,
+                    "kind": item.kind,
+                    "labels": list(item.labels),
+                    "help": item.help,
+                    "backend": item.backend,
+                }
+                for item in sliced
+            ],
+        }
 
     static_dir = static_dir if static_dir is not None else Path(__file__).parent / "_static"
 

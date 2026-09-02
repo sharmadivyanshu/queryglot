@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ThemeProvider } from '../ui/theme'
 import { createClient } from '../lib/api'
-import type { SearchResponse, StatusResponse } from '../lib/api'
+import type { SchemaField, SearchResponse, StatusResponse } from '../lib/api'
+import { parseVector } from '../lib/resultData'
 import { useAsk } from '../lib/useAsk'
 import type { AskState } from '../lib/useAsk'
 import { Panel } from '../widget/Panel'
+import { BarChart } from './BarChart'
 import { TopBar } from './TopBar'
 import { SchemaRail } from './SchemaRail'
 import { TracePanel } from './TracePanel'
 
 /** v1's static default list — same as the widget's. */
 const SUGGESTIONS = ['error rate in the last hour', 'memory usage right now', 'slowest routes today']
-const SCHEMA_LIMIT = 50
+const SCHEMA_LIMIT = 500
+
+function totalMetricsOf(status: StatusResponse): number {
+  return Object.values(status.backends).reduce((sum, count) => sum + count, 0)
+}
 
 function SearchIcon() {
   return (
@@ -22,8 +28,15 @@ function SearchIcon() {
   )
 }
 
-function AskBar({ onAsk }: { onAsk: (question: string) => void }) {
+function AskBar({ onAsk, seed }: { onAsk: (question: string) => void; seed: string }) {
   const [value, setValue] = useState('')
+  // Adjusts state during render rather than in an effect (react.dev/learn/you-might-not-need-an-effect
+  // #adjusting-some-state-when-a-prop-changes) — a seed change must land before this render paints.
+  const [appliedSeed, setAppliedSeed] = useState('')
+  if (seed && seed !== appliedSeed) {
+    setAppliedSeed(seed)
+    setValue(seed)
+  }
 
   function submit() {
     const trimmed = value.trim()
@@ -84,8 +97,15 @@ function Playground() {
   }, [reset])
   const [status, setStatus] = useState<StatusResponse | null>(null)
   const [statusUnreachable, setStatusUnreachable] = useState(false)
-  const [schemaItems, setSchemaItems] = useState<string[]>([])
+  const [schemaFields, setSchemaFields] = useState<SchemaField[]>([])
   const [schemaUnreachable, setSchemaUnreachable] = useState(false)
+  const [seed, setSeed] = useState('')  // pre-fill for AskBar
+
+  const lastAnswerNames = state.kind === 'answered' ? state.answer.schema_used : []
+  const askAbout = (name: string) => {
+    setSeed(name)
+    document.getElementById('qg-ask')?.focus()
+  }
 
   useEffect(() => {
     client
@@ -94,17 +114,29 @@ function Playground() {
       .catch(() => setStatusUnreachable(true))
     client
       .schema('', SCHEMA_LIMIT)
-      .then((response) => setSchemaItems(response.items))
+      .then((response) => setSchemaFields(response.fields))
       .catch(() => setSchemaUnreachable(true))
   }, [client])
 
   const answer = answerOf(state)
 
+  const resultView = (searchResponse: SearchResponse) => {
+    const rows = parseVector(searchResponse.result)
+    if (!rows || rows.length < 2 || !Number.isFinite(rows[0].value)) return null
+    return <BarChart rows={rows} />
+  }
+
   return (
     <div className="flex h-screen w-screen flex-col bg-qg-bg text-qg-text">
       <TopBar status={status} unreachable={statusUnreachable} />
       <div className="flex min-h-0 flex-1">
-        <SchemaRail items={schemaItems} status={status} unreachable={schemaUnreachable} />
+        <SchemaRail
+          fields={schemaFields}
+          total={status ? totalMetricsOf(status) : undefined}
+          unreachable={schemaUnreachable}
+          lastAnswerNames={lastAnswerNames}
+          onAskAbout={askAbout}
+        />
         <main className="flex min-w-0 flex-1 flex-col gap-[18px] px-8 py-7">
           <div className="flex flex-col gap-1.5">
             <h1 className="font-disp text-[23px] font-bold tracking-[-0.015em] text-qg-text">
@@ -114,10 +146,10 @@ function Playground() {
               Every answer shows the exact validated query it ran. Off-schema questions get an honest refusal.
             </p>
           </div>
-          <AskBar onAsk={ask} />
+          <AskBar onAsk={ask} seed={seed} />
           <div className="flex min-h-0 flex-1 gap-[18px]">
             <div className="min-w-0 flex-1">
-              <Panel state={state} onAsk={ask} onClose={reset} suggestions={SUGGESTIONS} inline />
+              <Panel state={state} onAsk={ask} onClose={reset} suggestions={SUGGESTIONS} inline resultView={resultView} />
             </div>
             <TracePanel answer={answer} />
           </div>

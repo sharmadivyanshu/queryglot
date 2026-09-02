@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
-import type { CSSProperties, KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
 import type { AskState } from '../lib/useAsk'
+import type { SearchResponse } from '../lib/api'
 import { QueryBlock } from './QueryBlock'
 import { ResultRows } from './ResultRows'
 import { PipelineStages } from './PipelineStages'
@@ -10,11 +11,16 @@ import './panel.css'
 
 export interface PanelProps {
   state: AskState
-  onAsk: (question: string) => void
+  onAsk: (question: string, opts?: { fresh?: boolean }) => void
   onClose: () => void
   suggestions: string[]
   /** True when embedded inline in a page (e.g. the playground), rather than floating over a host site. */
   inline?: boolean
+  /** Playground-only alternative renderer for an answered result. Receives the
+   *  raw answer; returning null falls back to ResultRows, so the slot never
+   *  has to handle shapes it doesn't recognise. Widget builds leave it unset
+   *  and the chart code is tree-shaken out of the bundle. */
+  resultView?: (answer: SearchResponse) => ReactNode | null
 }
 
 const sectionLabelStyle: CSSProperties = {
@@ -45,6 +51,15 @@ function ShieldIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
       <path d="M6 1 L10.5 3.5 V8.5 L6 11 L1.5 8.5 V3.5 Z" stroke="var(--qg-text-faint)" strokeWidth="1.2" />
+    </svg>
+  )
+}
+
+function RefreshIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v2.6h-2.6"
+        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -108,8 +123,26 @@ function formatElapsed(elapsedMs: number): string {
  * styling is inline style objects plus the shared class helpers in
  * `panel.css` — no Tailwind inside the widget tree.
  */
-export function Panel({ state, onAsk, onClose, suggestions, inline = false }: PanelProps) {
+export function Panel({ state, onAsk, onClose, suggestions, inline = false, resultView }: PanelProps) {
   const [question, setQuestion] = useState('')
+
+  // The chart/rows toggle resets to 'chart' whenever a new answer lands.
+  // Adjusts state during render rather than in an effect (react.dev/learn/
+  // you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes) —
+  // the reset must land before this render paints, and the repo's React
+  // Compiler lint rule flags a bare set-state-in-effect for this case.
+  // Track the answer object, not the whole state, so a summary-only merge
+  // (which creates a new state but keeps the same answer reference) doesn't
+  // bounce the toggle back to 'chart'.
+  const [view, setView] = useState<'chart' | 'rows'>('chart')
+  const [viewedAnswer, setViewedAnswer] = useState<SearchResponse | undefined>(
+    state.kind === 'answered' ? state.answer : undefined,
+  )
+  const currentAnswer = state.kind === 'answered' ? state.answer : undefined
+  if (currentAnswer !== viewedAnswer) {
+    setViewedAnswer(currentAnswer)
+    setView('chart')
+  }
 
   const submit = useCallback(
     (q: string) => {
@@ -180,6 +213,15 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
         <div style={headerRowStyle}>
           <SearchIcon />
           <span style={{ fontSize: 14, color: 'var(--qg-text)', flexGrow: 1 }}>{question}</span>
+          {state.kind === 'answered' && question && (
+            <button type="button" aria-label="re-run this question"
+              onClick={() => onAsk(question, { fresh: true })}
+              style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--qg-border)',
+                background: 'var(--qg-surface2)', color: 'var(--qg-text-mut)', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <RefreshIcon />
+            </button>
+          )}
           {state.kind === 'answered' && <Kbd>⌘K</Kbd>}
         </div>
       )}
@@ -234,27 +276,65 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false }: Pa
           </div>
         )}
 
-        {state.kind === 'answered' && (
-          <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 13 }}>
-            {state.summary && (
-              <p
-                className="qg-anim"
-                style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--qg-text)' }}
-              >
-                {state.summary}
-              </p>
-            )}
-            <QueryBlock query={state.answer.query} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <span style={sectionLabelStyle}>RESULT</span>
-              <ResultRows result={state.answer.result} />
+        {state.kind === 'answered' && (() => {
+          const chart = resultView ? resultView(state.answer) : null
+          return (
+            <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 13 }}>
+              {state.summary && (
+                <p
+                  className="qg-anim"
+                  style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--qg-text)' }}
+                >
+                  {state.summary}
+                </p>
+              )}
+              <QueryBlock query={state.answer.query} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={sectionLabelStyle}>RESULT</span>
+                  {chart !== null && (
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        display: 'inline-flex',
+                        border: '1px solid var(--qg-border-soft)',
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {(['chart', 'rows'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setView(mode)}
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 500,
+                            padding: '4px 10px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: view === mode ? 'var(--qg-surface2)' : 'transparent',
+                            color: view === mode ? 'var(--qg-text)' : 'var(--qg-text-faint)',
+                          }}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                </div>
+                {chart !== null && view === 'chart' ? chart : <ResultRows result={state.answer.result} />}
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--qg-text-faint)' }}>
+                grounded in {state.answer.schema_used.length} schema item{state.answer.schema_used.length === 1 ? '' : 's'} ·{' '}
+                {state.answer.attempts} attempt{state.answer.attempts === 1 ? '' : 's'} · {formatElapsed(state.answer.elapsed_ms)}
+                {state.answer.cached && state.answer.cache_age_s !== undefined && (
+                  <> · <span style={{ color: 'var(--qg-accent)' }}>cached {state.answer.cache_age_s}s ago</span></>
+                )}
+              </span>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--qg-text-faint)' }}>
-              grounded in {state.answer.schema_used.length} schema item{state.answer.schema_used.length === 1 ? '' : 's'} ·{' '}
-              {state.answer.attempts} attempt{state.answer.attempts === 1 ? '' : 's'} · {formatElapsed(state.answer.elapsed_ms)}
-            </span>
-          </div>
-        )}
+          )
+        })()}
 
         {state.kind === 'abstained' && (
           <div style={{ padding: '14px 16px' }}>
