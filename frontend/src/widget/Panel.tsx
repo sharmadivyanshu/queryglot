@@ -11,7 +11,7 @@ import './panel.css'
 
 export interface PanelProps {
   state: AskState
-  onAsk: (question: string) => void
+  onAsk: (question: string, opts?: { fresh?: boolean }) => void
   onClose: () => void
   suggestions: string[]
   /** True when embedded inline in a page (e.g. the playground), rather than floating over a host site. */
@@ -51,6 +51,15 @@ function ShieldIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
       <path d="M6 1 L10.5 3.5 V8.5 L6 11 L1.5 8.5 V3.5 Z" stroke="var(--qg-text-faint)" strokeWidth="1.2" />
+    </svg>
+  )
+}
+
+function RefreshIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v2.6h-2.6"
+        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -198,6 +207,15 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false, resu
         <div style={headerRowStyle}>
           <SearchIcon />
           <span style={{ fontSize: 14, color: 'var(--qg-text)', flexGrow: 1 }}>{question}</span>
+          {state.kind === 'answered' && question && (
+            <button type="button" aria-label="re-run this question"
+              onClick={() => onAsk(question, { fresh: true })}
+              style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--qg-border)',
+                background: 'var(--qg-surface2)', color: 'var(--qg-text-mut)', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <RefreshIcon />
+            </button>
+          )}
           {state.kind === 'answered' && <Kbd>⌘K</Kbd>}
         </div>
       )}
@@ -304,6 +322,9 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false, resu
               <span style={{ fontSize: 11, color: 'var(--qg-text-faint)' }}>
                 grounded in {state.answer.schema_used.length} schema item{state.answer.schema_used.length === 1 ? '' : 's'} ·{' '}
                 {state.answer.attempts} attempt{state.answer.attempts === 1 ? '' : 's'} · {formatElapsed(state.answer.elapsed_ms)}
+                {state.answer.cached && state.answer.cache_age_s !== undefined && (
+                  <> · <span style={{ color: 'var(--qg-accent)' }}>cached {state.answer.cache_age_s}s ago</span></>
+                )}
               </span>
             </div>
           )

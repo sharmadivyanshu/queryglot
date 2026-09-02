@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { Panel } from './Panel'
 
 const noop = () => {}
@@ -142,4 +143,30 @@ it('shows no toggle and plain rows when resultView is absent or returns null', (
       resultView={() => null} />,
   )
   expect(screen.queryByRole('button', { name: 'chart' })).not.toBeInTheDocument()
+})
+
+it('re-runs the question fresh from the header refresh button', () => {
+  const onAsk = vi.fn()
+  // Panel keeps the asked question in local state: submit a suggestion while
+  // idle, then rerender the same instance in the answered state.
+  const { rerender } = render(
+    <Panel state={{ kind: 'idle' }} onAsk={onAsk} onClose={noop} suggestions={['slowest routes today']} />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: /slowest routes today/ }))
+  rerender(
+    <Panel state={{ kind: 'answered', answer: answeredResponse() }} onAsk={onAsk} onClose={noop} suggestions={[]} />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 're-run this question' }))
+  expect(onAsk).toHaveBeenLastCalledWith('slowest routes today', { fresh: true })
+})
+
+it('hides the refresh button when no question was asked through the panel', () => {
+  render(<Panel state={{ kind: 'answered', answer: answeredResponse() }} onAsk={noop} onClose={noop} suggestions={[]} />)
+  expect(screen.queryByRole('button', { name: 're-run this question' })).not.toBeInTheDocument()
+})
+
+it('shows cache age on cached answers', () => {
+  const answer = { ...answeredResponse(), cached: true, cache_age_s: 42 }
+  render(<Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]} />)
+  expect(screen.getByText(/cached 42s ago/)).toBeInTheDocument()
 })
