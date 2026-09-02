@@ -30,6 +30,13 @@ describe('parseVector', () => {
   it('returns an empty array for an empty vector (caller shows the empty state)', () => {
     expect(parseVector({ resultType: 'vector', result: [] })).toEqual([])
   })
+
+  it('maps non-numeric values to -Infinity so charts can reject them', () => {
+    const rows = parseVector([sample({ label: 'a' }, 'NaN'), sample({ label: 'b' }, '42')])
+    expect(rows).not.toBeNull()
+    expect(rows![0]).toEqual({ label: 'b', value: 42, raw: '42' })  // sorted descending
+    expect(rows![1].value).toBe(Number.NEGATIVE_INFINITY)
+  })
 })
 
 describe('formatValue', () => {

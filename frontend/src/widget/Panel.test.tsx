@@ -170,3 +170,20 @@ it('shows cache age on cached answers', () => {
   render(<Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]} />)
   expect(screen.getByText(/cached 42s ago/)).toBeInTheDocument()
 })
+
+it('preserves the chart/rows toggle selection when a summary arrives', () => {
+  const answer = answeredResponse()
+  const { rerender } = render(
+    <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => <div data-testid="custom-chart" />} />,
+  )
+  // Click to switch to rows
+  fireEvent.click(screen.getByRole('button', { name: 'rows' }))
+  expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
+  // Rerender with the same answer but a new summary added — should keep rows selected
+  rerender(
+    <Panel state={{ kind: 'answered', answer, summary: 'The answer is 42' }} onAsk={noop} onClose={noop} suggestions={[]}
+      resultView={() => <div data-testid="custom-chart" />} />,
+  )
+  expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
+})

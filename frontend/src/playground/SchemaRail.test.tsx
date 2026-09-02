@@ -18,7 +18,7 @@ const noop = () => {}
 
 describe('SchemaRail', () => {
   it('shows the field count and one type badge per row', () => {
-    render(<SchemaRail fields={FIELDS} total={4} status={null} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
+    render(<SchemaRail fields={FIELDS} total={4} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
     expect(screen.getByText('4 fields')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /go_\*/ }))
     fireEvent.click(screen.getByRole('button', { name: /prometheus_\*/ }))
@@ -27,27 +27,27 @@ describe('SchemaRail', () => {
   })
 
   it('type chips filter the list', () => {
-    render(<SchemaRail fields={FIELDS} total={4} status={null} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
+    render(<SchemaRail fields={FIELDS} total={4} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
     fireEvent.click(screen.getByRole('button', { name: /C 1/ }))
     expect(screen.getByText('prometheus_http_requests_total')).toBeInTheDocument()
     expect(screen.queryByText('go_goroutines')).not.toBeInTheDocument()
   })
 
   it('text filter flattens and narrows', () => {
-    render(<SchemaRail fields={FIELDS} total={4} status={null} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
+    render(<SchemaRail fields={FIELDS} total={4} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
     fireEvent.change(screen.getByPlaceholderText('filter metrics…'), { target: { value: 'goroutines' } })
     expect(screen.getByText('go_goroutines')).toBeInTheDocument()
     expect(screen.queryByText('prometheus_http_requests_total')).not.toBeInTheDocument()
   })
 
   it('row accessible name includes the type word (badge is decoration)', () => {
-    render(<SchemaRail fields={FIELDS} total={4} status={null} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
+    render(<SchemaRail fields={FIELDS} total={4} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
     fireEvent.click(screen.getByRole('button', { name: /go_\*/ }))
     expect(screen.getByRole('button', { name: /go_goroutines.*gauge/ })).toBeInTheDocument()
   })
 
   it('groups by prefix, collapsed by default, expandable', () => {
-    render(<SchemaRail fields={FIELDS} total={4} status={null} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
+    render(<SchemaRail fields={FIELDS} total={4} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
     expect(screen.getByText('go_*')).toBeInTheDocument()
     expect(screen.queryByText('go_goroutines')).not.toBeInTheDocument()  // collapsed
     fireEvent.click(screen.getByRole('button', { name: /go_\*/ }))
@@ -56,7 +56,7 @@ describe('SchemaRail', () => {
 
   it('pins schema_used names in an expanded IN LAST ANSWER group', () => {
     render(
-      <SchemaRail fields={FIELDS} total={4} status={null} unreachable={false}
+      <SchemaRail fields={FIELDS} total={4} unreachable={false}
         lastAnswerNames={['prometheus_http_request_duration_seconds']} onAskAbout={noop} />,
     )
     expect(screen.getByText('IN LAST ANSWER')).toBeInTheDocument()
@@ -66,7 +66,7 @@ describe('SchemaRail', () => {
   it('clicking a row expands a card with labels, help, and ask-about', () => {
     const onAskAbout = vi.fn()
     render(
-      <SchemaRail fields={FIELDS} total={4} status={null} unreachable={false}
+      <SchemaRail fields={FIELDS} total={4} unreachable={false}
         lastAnswerNames={['prometheus_http_request_duration_seconds']} onAskAbout={onAskAbout} />,
     )
     fireEvent.click(screen.getByRole('button', { name: /duration_seconds.*histogram/ }))
@@ -77,7 +77,7 @@ describe('SchemaRail', () => {
   })
 
   it('an active filter flattens groups into one list', () => {
-    render(<SchemaRail fields={FIELDS} total={4} status={null} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
+    render(<SchemaRail fields={FIELDS} total={4} unreachable={false} lastAnswerNames={[]} onAskAbout={noop} />)
     fireEvent.change(screen.getByPlaceholderText('filter metrics…'), { target: { value: 'go_' } })
     expect(screen.queryByText('go_*')).not.toBeInTheDocument()
     expect(screen.getByText('go_goroutines')).toBeInTheDocument()

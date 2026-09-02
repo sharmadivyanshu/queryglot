@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { SchemaField, StatusResponse } from '../lib/api'
+import type { SchemaField } from '../lib/api'
 
 function SearchIcon() {
   return (
@@ -17,7 +17,7 @@ const BADGES: Record<string, { letter: string; fg: string; bg: string }> = {
   summary: { letter: 'S', fg: 'var(--t-summ)', bg: 'var(--t-summ-bg)' },
 }
 
-export function badgeFor(type: string) {
+function badgeFor(type: string) {
   return BADGES[type] ?? { letter: (type[0] ?? '?').toUpperCase(), fg: 'var(--t-other)', bg: 'var(--t-other-bg)' }
 }
 
@@ -38,7 +38,6 @@ export interface SchemaRailProps {
   fields: SchemaField[]
   /** Total metric count from /api/status (may exceed fields.length when the fetch limit truncated). */
   total?: number
-  status: StatusResponse | null
   /** True once /api/schema has rejected — shows a short inline message instead of an empty list. */
   unreachable: boolean
   /** schema_used names from the latest answered ask — drives IN LAST ANSWER (Task 6). */
@@ -154,11 +153,11 @@ export function SchemaRail({ fields, total, unreachable, lastAnswerNames, onAskA
     setExpandedField((current) => (current === name ? null : name))
   }
 
-  function renderRow(field: SchemaField, hot: boolean) {
+  function renderRow(field: SchemaField, hot: boolean, showCard: boolean = true) {
     return (
       <div key={field.name}>
         <FieldRow field={field} hot={hot} onClick={() => toggleField(field.name)} />
-        {expandedField === field.name && <ExpandCard field={field} onAskAbout={onAskAbout} />}
+        {showCard && expandedField === field.name && <ExpandCard field={field} onAskAbout={onAskAbout} />}
       </div>
     )
   }
@@ -219,7 +218,7 @@ export function SchemaRail({ fields, total, unreachable, lastAnswerNames, onAskA
                       open={openGroups.has(prefix)}
                       onToggle={() => toggleGroup(prefix)}
                     />
-                    {openGroups.has(prefix) && groupFields.map((field) => renderRow(field, hotNames.has(field.name)))}
+                    {openGroups.has(prefix) && groupFields.map((field) => renderRow(field, hotNames.has(field.name), !hotNames.has(field.name)))}
                   </div>
                 ))}
           </div>

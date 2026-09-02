@@ -122,7 +122,7 @@ function Playground() {
 
   const resultView = (searchResponse: SearchResponse) => {
     const rows = parseVector(searchResponse.result)
-    if (!rows || rows.length < 2) return null
+    if (!rows || rows.length < 2 || !Number.isFinite(rows[0].value)) return null
     return <BarChart rows={rows} />
   }
 
@@ -133,7 +133,6 @@ function Playground() {
         <SchemaRail
           fields={schemaFields}
           total={status ? totalMetricsOf(status) : undefined}
-          status={status}
           unreachable={schemaUnreachable}
           lastAnswerNames={lastAnswerNames}
           onAskAbout={askAbout}

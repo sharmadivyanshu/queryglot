@@ -131,10 +131,16 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false, resu
   // you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes) —
   // the reset must land before this render paints, and the repo's React
   // Compiler lint rule flags a bare set-state-in-effect for this case.
+  // Track the answer object, not the whole state, so a summary-only merge
+  // (which creates a new state but keeps the same answer reference) doesn't
+  // bounce the toggle back to 'chart'.
   const [view, setView] = useState<'chart' | 'rows'>('chart')
-  const [viewedState, setViewedState] = useState(state)
-  if (state !== viewedState) {
-    setViewedState(state)
+  const [viewedAnswer, setViewedAnswer] = useState<SearchResponse | undefined>(
+    state.kind === 'answered' ? state.answer : undefined,
+  )
+  const currentAnswer = state.kind === 'answered' ? state.answer : undefined
+  if (currentAnswer !== viewedAnswer) {
+    setViewedAnswer(currentAnswer)
     setView('chart')
   }
 
