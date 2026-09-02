@@ -12,6 +12,7 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import math
 import os
 import time
 from pathlib import Path
@@ -27,11 +28,14 @@ from .llm import LLM, OpenAICompatibleLLM
 
 logger = logging.getLogger("queryglot.server")
 
+WINDOW_PRESETS = {5, 15, 30, 60, 180, 360, 1440}
+
 
 class SearchRequest(BaseModel):
     question: str
     backend: str | None = None
     fresh: bool = False
+    window_minutes: int | None = None
 
 
 class SummaryRequest(BaseModel):
@@ -49,6 +53,45 @@ SUMMARY_SYSTEM = (
 
 CACHE_TTL_SECONDS = 60.0
 CACHE_MAX_ENTRIES = 256
+
+
+def _downsample_matrix(result: object) -> object:
+    """Matrix payloads are too big for an 80-token summary prompt. Reduce each
+    series to what a one-sentence answer can actually use: latest, peak, and
+    when the peak happened. Non-matrix results pass through untouched.
+
+    Defensively skips non-numeric values and NaN samples to avoid 500 errors
+    and incorrect peak selection."""
+    if not (isinstance(result, dict) and result.get("resultType") == "matrix"):
+        return result
+    series_out = []
+    for series in result.get("result", []):
+        values = []
+        for t, v in series.get("values", []):
+            if v is None:
+                continue
+            try:
+                t_float = float(t)
+                v_float = float(v)
+                # Skip NaN values — they poison peak selection
+                if math.isnan(t_float) or math.isnan(v_float):
+                    continue
+                values.append((t_float, v_float))
+            except (ValueError, TypeError):
+                # Skip points with unparseable timestamps or values
+                continue
+        if not values:
+            continue
+        peak_t, peak_v = max(values, key=lambda tv: tv[1])
+        series_out.append(
+            {
+                "labels": series.get("metric", {}),
+                "latest": values[-1][1],
+                "peak": peak_v,
+                "peak_at_epoch_s": peak_t,
+            }
+        )
+    return {"series": series_out}
 
 
 def create_app(
@@ -117,22 +160,35 @@ def create_app(
         counts = {name: len(engine.catalog.by_backend(name)) for name in engine.backends}
         return {"backends": counts, "version": __version__}
 
-    search_cache: dict[tuple[str, str], tuple[float, dict]] = {}
+    search_cache: dict[tuple[str, str, int], tuple[float, dict]] = {}
 
-    def cache_key(request: SearchRequest) -> tuple[str, str]:
-        return (" ".join(request.question.lower().split()), request.backend or "")
+    def cache_key(request: SearchRequest) -> tuple[str, str, int]:
+        return (
+            " ".join(request.question.lower().split()),
+            request.backend or "",
+            request.window_minutes or 0,
+        )
 
     @app.post("/api/search")
     def search(request: SearchRequest) -> dict:
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="question must be non-empty")
+        if request.window_minutes is not None and request.window_minutes not in WINDOW_PRESETS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"window_minutes must be one of {sorted(WINDOW_PRESETS)}",
+            )
         key = cache_key(request)
         hit = None if request.fresh else search_cache.get(key)
         if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
             return {**hit[1], "cached": True, "cache_age_s": int(time.monotonic() - hit[0])}
         started = time.monotonic()
         try:
-            answer = engine.search(request.question, backend=request.backend)
+            answer = engine.search(
+                request.question,
+                backend=request.backend,
+                window_minutes=request.window_minutes,
+            )
             payload = answer.as_dict()
         except Exception as exc:
             logger.exception("search failed")
@@ -189,7 +245,7 @@ def create_app(
     def summary(request: SummaryRequest) -> dict:
         if summary_llm is None:
             return {"summary": ""}
-        data = json.dumps(request.result, default=str)[:1500]
+        data = json.dumps(_downsample_matrix(request.result), default=str)[:1500]
         prompt = (
             f"Question: {request.question}\n"
             f"Query that ran: {request.query}\n"

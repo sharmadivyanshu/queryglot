@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from queryglot import __version__
 from queryglot.engine import Engine
 from queryglot.server import create_app
-from tests.conftest import FakeBackend, ScriptedLLM
+from tests.conftest import FakeBackend, IntrospectingBackend, ScriptedLLM
 
 
 def client_for(llm=None, backend=None):
@@ -152,25 +152,6 @@ class RaisingLLM:
         raise OSError("connection refused: LLM endpoint down")
 
 
-class IntrospectingBackend(FakeBackend):
-    """FakeBackend whose introspect() actually returns schema, so retrieval
-    clears the gate and the graph reaches compile (i.e. calls the LLM)."""
-
-    def introspect(self):
-        from queryglot.catalog import SchemaItem
-
-        return [
-            SchemaItem(
-                name="http_server_request_duration_seconds",
-                backend="prometheus",
-                kind="metric",
-                type="histogram",
-                help="HTTP request latency",
-                labels=("route", "method", "status"),
-            )
-        ]
-
-
 def test_search_engine_exception_returns_failed_outcome_not_500():
     engine = Engine([IntrospectingBackend()], llm=RaisingLLM())
     response = TestClient(create_app(engine)).post(
@@ -297,3 +278,131 @@ def test_cache_hit_reports_age_in_seconds():
     assert hit["cached"] is True
     assert isinstance(hit["cache_age_s"], int)
     assert hit["cache_age_s"] >= 0
+
+
+def test_search_rejects_non_preset_windows():
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine))
+    response = client.post("/api/search", json={"question": "q", "window_minutes": 7})
+    assert response.status_code == 400
+    assert "window" in response.json()["detail"]
+
+
+def test_cache_keys_separate_windows():
+    llm = CountingLLM("GOOD")
+    engine = Engine([IntrospectingBackend(valid={"GOOD"})], llm=llm)
+    client = TestClient(create_app(engine))
+    client.post("/api/search", json={"question": "p95 latency by route"})
+    calls = len(llm.calls)
+    windowed = client.post(
+        "/api/search", json={"question": "p95 latency by route", "window_minutes": 30}
+    ).json()
+    assert "cached" not in windowed  # different window → not a cache hit
+    assert len(llm.calls) > calls
+    hit = client.post(
+        "/api/search", json={"question": "p95 latency by route", "window_minutes": 30}
+    ).json()
+    assert hit["cached"] is True  # same window → hit
+
+
+def test_summary_downsamples_matrix_results():
+    class RecordingLLM:
+        def __init__(self):
+            self.prompts: list[tuple[str, str]] = []
+
+        def complete(self, system: str, prompt: str) -> str:
+            self.prompts.append((system, prompt))
+            return "peaked earlier."
+
+    llm = RecordingLLM()
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine, summary_llm=llm))
+    matrix = {
+        "resultType": "matrix",
+        "result": [
+            {"metric": {"handler": "/api"}, "values": [[100, "1.0"], [130, "84.2"], [160, "31.5"]]},
+        ],
+    }
+    body = client.post(
+        "/api/summary",
+        json={"question": "request rate", "query": "rate(x[1m])", "result": matrix},
+    ).json()
+    assert body["summary"] == "peaked earlier."
+    prompt = llm.prompts[0][1]
+    assert "84.2" in prompt and "31.5" in prompt  # peak + latest survive
+    assert '"values"' not in prompt  # raw matrix did not
+
+
+def test_summary_handles_non_numeric_matrix_values():
+    """Non-numeric value strings should be skipped without crashing."""
+
+    class RecordingLLM:
+        def __init__(self):
+            self.prompts: list[tuple[str, str]] = []
+
+        def complete(self, system: str, prompt: str) -> str:
+            self.prompts.append((system, prompt))
+            return "request rate was high."
+
+    llm = RecordingLLM()
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine, summary_llm=llm))
+    matrix = {
+        "resultType": "matrix",
+        "result": [
+            {
+                "metric": {"handler": "/api"},
+                "values": [[100, "1.0"], [130, "not_a_number"], [160, "31.5"]],
+            },
+        ],
+    }
+    body = client.post(
+        "/api/summary",
+        json={"question": "request rate", "query": "rate(x[1m])", "result": matrix},
+    ).json()
+    # Should return 200 with a summary, not 500
+    assert body["summary"] == "request rate was high."
+    prompt = llm.prompts[0][1]
+    # Bad point is skipped; latest (31.5) and peak (31.5) are reported
+    assert "31.5" in prompt
+    assert "not_a_number" not in prompt
+
+
+def test_summary_handles_nan_in_matrix_values():
+    """NaN samples should be skipped; peak is the max FINITE value.
+
+    NaN becomes the initial max() candidate when first in the list, making
+    it the unchallenged peak without explicit isnan filtering."""
+
+    class RecordingLLM:
+        def __init__(self):
+            self.prompts: list[tuple[str, str]] = []
+
+        def complete(self, system: str, prompt: str) -> str:
+            self.prompts.append((system, prompt))
+            return "peak was high."
+
+    llm = RecordingLLM()
+    engine = Engine([FakeBackend(valid={"GOOD"})], llm=ScriptedLLM("GOOD"))
+    client = TestClient(create_app(engine, summary_llm=llm))
+    matrix = {
+        "resultType": "matrix",
+        "result": [
+            {
+                "metric": {"handler": "/api"},
+                # NaN as first element becomes unchallenged initial candidate
+                # in max(); isnan check must filter it out
+                "values": [[100, "NaN"], [130, "50.0"], [160, "25.0"]],
+            },
+        ],
+    }
+    body = client.post(
+        "/api/summary",
+        json={"question": "request rate", "query": "rate(x[1m])", "result": matrix},
+    ).json()
+    # Should return 200 with a summary, not 500
+    assert body["summary"] == "peak was high."
+    prompt = llm.prompts[0][1]
+    # Peak is 50.0 (not NaN); latest is 25.0
+    assert "50.0" in prompt and "25.0" in prompt
+    assert "NaN" not in prompt

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatValue, parseVector } from './resultData'
+import { formatValue, parseVector, parseMatrix } from './resultData'
 
 const sample = (labels: Record<string, string>, v: string) => ({ metric: labels, value: [1, v] })
 
@@ -47,5 +47,23 @@ describe('formatValue', () => {
   it('passes zero and non-numeric through', () => {
     expect(formatValue('0')).toBe('0')
     expect(formatValue('NaN-ish')).toBe('NaN-ish')
+  })
+})
+
+describe('parseMatrix', () => {
+  it('parses matrix envelopes into typed series', () => {
+    const matrix = {
+      resultType: 'matrix',
+      result: [{ metric: { handler: '/api' }, values: [[100, '1.5'], [130, '84.2']] }],
+    }
+    const series = parseMatrix(matrix)
+    expect(series).toHaveLength(1)
+    expect(series![0].labels).toEqual({ handler: '/api' })
+    expect(series![0].points).toEqual([[100, 1.5], [130, 84.2]])
+  })
+
+  it('returns null for vectors and garbage', () => {
+    expect(parseMatrix({ resultType: 'vector', result: [] })).toBeNull()
+    expect(parseMatrix(null)).toBeNull()
   })
 })

@@ -20,9 +20,23 @@ export type AskState =
   | { kind: 'failed'; answer: SearchResponse; error?: undefined }
   | { kind: 'failed'; answer?: undefined; error: string }
 
+export interface AskOptions {
+  fresh?: boolean
+  /**
+   * Per-call override for the hook's `windowMinutes` arg. `undefined` (the
+   * default, or simply omitting the key) means "use whatever window the hook
+   * was constructed with" — the original behaviour. A `number` pins an
+   * explicit window for this call only. `null` means "Instant" (no window at
+   * all), distinct from "unspecified" — without this sentinel, a caller that
+   * wants to re-run under Instant would have no way to say so, since
+   * `undefined` already means "fall back to the hook's window".
+   */
+  windowMinutes?: number | null
+}
+
 export interface UseAskResult {
   state: AskState
-  ask: (question: string, opts?: { fresh?: boolean }) => void
+  ask: (question: string, opts?: AskOptions) => void
   reset: () => void
 }
 
@@ -51,7 +65,7 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function useAsk(client: Client, backend?: string): UseAskResult {
+export function useAsk(client: Client, backend?: string, windowMinutes?: number): UseAskResult {
   const [state, setState] = useState<AskState>({ kind: 'idle' })
   const requestIdRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -74,9 +88,16 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
   }, [clearTimer])
 
   const ask = useCallback(
-    (question: string, opts?: { fresh?: boolean }) => {
+    (question: string, opts?: AskOptions) => {
       const requestId = ++requestIdRef.current
       clearTimer()
+
+      // `'windowMinutes' in opts` distinguishes "caller passed no override"
+      // (fall back to the hook's own windowMinutes) from "caller explicitly
+      // passed null" (Instant — no window). `opts?.windowMinutes` alone can't
+      // tell those apart because both read as undefined/null-ish.
+      const overrideWindow = opts && 'windowMinutes' in opts ? opts.windowMinutes : windowMinutes
+      const effectiveWindow = overrideWindow === null ? undefined : overrideWindow
 
       const reduced = prefersReducedMotion()
       setState({ kind: 'thinking', stage: reduced ? 1 : 0 })
@@ -94,7 +115,7 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
       }
 
       client
-        .search(question, backend, opts?.fresh)
+        .search(question, backend, opts?.fresh, effectiveWindow)
         .then((answer) => {
           if (requestIdRef.current !== requestId) {
             return
@@ -136,7 +157,7 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
           setState({ kind: 'failed', error: message })
         })
     },
-    [client, backend, clearTimer],
+    [client, backend, clearTimer, windowMinutes],
   )
 
   return { state, ask, reset }

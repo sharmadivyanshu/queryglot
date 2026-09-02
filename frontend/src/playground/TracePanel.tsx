@@ -26,7 +26,7 @@ function buildStages(answer?: SearchResponse): StageRow[] {
     { name: 'retrieve', metric: `${items} item${items === 1 ? '' : 's'}` },
     { name: 'compile', metric: `${attempts} attempt${attempts === 1 ? '' : 's'}` },
     { name: 'validate', metric: 'server parser' },
-    { name: 'execute', metric: `${Math.round(answer.elapsed_ms)} ms` },
+    { name: 'execute', metric: answer.window ? `query_range · ${answer.window.minutes} min` : `${Math.round(answer.elapsed_ms)} ms` },
   ]
 }
 
@@ -57,8 +57,9 @@ export function TracePanel({ answer }: { answer?: SearchResponse }) {
         </div>
       ))}
       <span className="border-t border-qg-border-soft pt-1 text-[11.5px] leading-[1.5] text-qg-text-faint">
-        The model only wrote syntax. Your schema came from live introspection; your server&apos;s parser had the
-        final word.
+        {answer?.window
+          ? 'The window came from the picker, not the model — the model wrote the expression, the range was applied by the engine.'
+          : "The model only wrote syntax. Your schema came from live introspection; your server's parser had the final word."}
       </span>
     </div>
   )

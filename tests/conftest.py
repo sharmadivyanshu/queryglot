@@ -68,9 +68,11 @@ class ScriptedLLM:
     def __init__(self, *completions: str):
         self.completions = list(completions)
         self.calls: list[str] = []
+        self.prompts: list[tuple[str, str]] = []
 
     def complete(self, system: str, prompt: str) -> str:
         self.calls.append(prompt)
+        self.prompts.append((system, prompt))
         if len(self.completions) > 1:
             return self.completions.pop(0)
         return self.completions[0]
@@ -81,6 +83,7 @@ class FakeBackend:
 
     name = "prometheus"
     language = "PromQL"
+    supports_range = True
 
     def __init__(
         self, valid: set[str] | None = None, data: object = "DATA", execute_ok: bool = True
@@ -89,6 +92,7 @@ class FakeBackend:
         self.data = data
         self.execute_ok = execute_ok
         self.executed: list[str] = []
+        self.range_calls: list[tuple[str, float, float, float]] = []
 
     def introspect(self):
         return []
@@ -107,3 +111,26 @@ class FakeBackend:
         if self.execute_ok:
             return Execution(ok=True, data=self.data)
         return Execution(ok=False, error="boom")
+
+    def execute_range(self, query: str, start: float, end: float, step: float):
+        if not self.supports_range:
+            raise NotImplementedError("fake backend range disabled")
+        self.range_calls.append((query, start, end, step))
+        return self.execute(query)
+
+
+class IntrospectingBackend(FakeBackend):
+    """FakeBackend whose introspect() actually returns schema, so retrieval
+    clears the gate and the graph reaches compile (i.e. calls the LLM)."""
+
+    def introspect(self):
+        return [
+            SchemaItem(
+                name="http_server_request_duration_seconds",
+                backend="prometheus",
+                kind="metric",
+                type="histogram",
+                help="HTTP request latency",
+                labels=("route", "method", "status"),
+            )
+        ]

@@ -98,3 +98,6 @@ class ElasticBackend:
         if status >= 400 or "error" in payload:
             return Execution(ok=False, error=json.dumps(payload.get("error", payload))[:400])
         return Execution(ok=True, data=payload)
+
+    def execute_range(self, query: str, start: float, end: float, step: float) -> Execution:
+        raise NotImplementedError("elasticsearch backend has no range queries")

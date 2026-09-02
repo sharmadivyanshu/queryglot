@@ -7,6 +7,11 @@
 
 export type Outcome = 'answered' | 'abstained' | 'failed'
 
+export interface WindowInfo {
+  minutes: number
+  step_s: number
+}
+
 export interface SchemaField {
   name: string
   type: string
@@ -27,6 +32,7 @@ export interface SearchResponse {
   elapsed_ms: number
   cached?: boolean
   cache_age_s?: number
+  window?: WindowInfo
 }
 
 export interface SchemaResponse {
@@ -49,7 +55,7 @@ export interface ClientOptions {
 }
 
 export interface Client {
-  search(question: string, backend?: string, fresh?: boolean): Promise<SearchResponse>
+  search(question: string, backend?: string, fresh?: boolean, windowMinutes?: number): Promise<SearchResponse>
   schema(query?: string, limit?: number): Promise<SchemaResponse>
   status(): Promise<StatusResponse>
   summary(question: string, query: string, result: unknown): Promise<SummaryResponse>
@@ -86,10 +92,13 @@ export function extractItemNames(items: string[]): string[] {
 
 export function createClient({ api, token }: ClientOptions): Client {
   return {
-    search(question, backend, fresh) {
+    search(question, backend, fresh, windowMinutes) {
+      const body: Record<string, unknown> = { question, backend }
+      if (fresh) body.fresh = true
+      if (windowMinutes !== undefined) body.window_minutes = windowMinutes
       return request<SearchResponse>(`${api}/api/search`, token, {
         method: 'POST',
-        body: JSON.stringify(fresh ? { question, backend, fresh: true } : { question, backend }),
+        body: JSON.stringify(body),
       })
     },
     schema(query = '', limit = 20) {
