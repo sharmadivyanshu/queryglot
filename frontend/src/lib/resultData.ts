@@ -5,11 +5,6 @@
  * but this parsing is shared and tiny.
  */
 
-export interface WindowInfo {
-  minutes: number
-  step_s: number
-}
-
 interface InstantVectorSample {
   metric: Record<string, string>
   value: [number | string, string]
