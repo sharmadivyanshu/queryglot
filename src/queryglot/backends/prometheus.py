@@ -306,3 +306,13 @@ class PrometheusBackend:
         if payload.get("status") != "success":
             return Execution(ok=False, error=payload.get("error", f"HTTP {status}"))
         return Execution(ok=True, data=payload.get("data"))
+
+    def execute_range(self, query: str, start: float, end: float, step: float) -> Execution:
+        status, payload = post_form(
+            self.transport,
+            f"{self.base_url}/api/v1/query_range",
+            {"query": query, "start": str(start), "end": str(end), "step": str(step)},
+        )
+        if payload.get("status") != "success":
+            return Execution(ok=False, error=payload.get("error", f"HTTP {status}"))
+        return Execution(ok=True, data=payload.get("data"))

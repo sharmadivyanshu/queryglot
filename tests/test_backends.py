@@ -358,3 +358,32 @@ def test_validate_rejects_bucket_suffix_on_summary():
     # the summary's real series remain fine
     assert backend.validate("rate(rpc_seconds_count[5m])").ok
     assert backend.validate('rpc_seconds{quantile="0.5"}').ok
+
+
+def test_prometheus_execute_range_hits_query_range_with_window():
+    recorder = Recorder(
+        {
+            "/api/v1/query_range": (
+                200,
+                {"status": "success", "data": {"resultType": "matrix", "result": []}},
+            ),
+        }
+    )
+    backend = PrometheusBackend("http://x:9090", transport=recorder)
+    run = backend.execute_range("rate(up[1m])", start=1000.0, end=2800.0, step=30.0)
+    assert run.ok
+    method, url, body = recorder.requests[0]
+    assert "query_range" in url
+    from urllib.parse import parse_qs
+
+    sent = parse_qs(body.decode())
+    assert sent["query"] == ["rate(up[1m])"]
+    assert sent["start"] == ["1000.0"]
+    assert sent["end"] == ["2800.0"]
+    assert sent["step"] == ["30.0"]
+
+
+def test_prometheus_execute_range_surfaces_errors():
+    backend = prom({"/api/v1/query_range": (400, {"status": "error", "error": "bad step"})})
+    run = backend.execute_range("up", start=0.0, end=1.0, step=0.0)
+    assert not run.ok and "bad step" in run.error
