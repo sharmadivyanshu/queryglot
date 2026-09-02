@@ -232,3 +232,6 @@ class OpenAPIBackend:
             return Execution(ok=True, data=json.loads(text))
         except ValueError:
             return Execution(ok=True, data=text)
+
+    def execute_range(self, query: str, start: float, end: float, step: float) -> Execution:
+        raise NotImplementedError("openapi backend has no range queries")

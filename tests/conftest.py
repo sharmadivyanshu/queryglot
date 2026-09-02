@@ -81,6 +81,7 @@ class FakeBackend:
 
     name = "prometheus"
     language = "PromQL"
+    supports_range = True
 
     def __init__(
         self, valid: set[str] | None = None, data: object = "DATA", execute_ok: bool = True
@@ -89,6 +90,7 @@ class FakeBackend:
         self.data = data
         self.execute_ok = execute_ok
         self.executed: list[str] = []
+        self.range_calls: list[tuple[str, float, float, float]] = []
 
     def introspect(self):
         return []
@@ -107,3 +109,11 @@ class FakeBackend:
         if self.execute_ok:
             return Execution(ok=True, data=self.data)
         return Execution(ok=False, error="boom")
+
+    def execute_range(self, query: str, start: float, end: float, step: float):
+        from queryglot.backends import Execution
+
+        if not self.supports_range:
+            raise NotImplementedError("fake backend range disabled")
+        self.range_calls.append((query, start, end, step))
+        return self.execute(query)

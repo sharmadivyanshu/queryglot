@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from queryglot.backends.elastic import ElasticBackend, flatten_mapping
 from queryglot.backends.prometheus import PrometheusBackend, metric_candidates
 
@@ -387,3 +389,9 @@ def test_prometheus_execute_range_surfaces_errors():
     backend = prom({"/api/v1/query_range": (400, {"status": "error", "error": "bad step"})})
     run = backend.execute_range("up", start=0.0, end=1.0, step=0.0)
     assert not run.ok and "bad step" in run.error
+
+
+def test_elastic_execute_range_is_not_implemented():
+    backend = ElasticBackend("http://x:9200", transport=Recorder({}))
+    with pytest.raises(NotImplementedError):
+        backend.execute_range("{}", 0.0, 1.0, 15.0)
