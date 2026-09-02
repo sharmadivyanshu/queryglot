@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -21,9 +22,10 @@ class Answer:
     reason: str = ""
     schema_used: list[str] = field(default_factory=list)
     attempts: int = 0
+    window: dict | None = None
 
     def as_dict(self) -> dict:
-        return {
+        payload = {
             "outcome": self.outcome,
             "backend": self.backend,
             "query": self.query,
@@ -32,6 +34,9 @@ class Answer:
             "schema_used": self.schema_used,
             "attempts": self.attempts,
         }
+        if self.window is not None:
+            payload["window"] = self.window
+        return payload
 
 
 class Engine:
@@ -69,7 +74,9 @@ class Engine:
         }
         return counts
 
-    def search(self, question: str, backend: str | None = None) -> Answer:
+    def search(
+        self, question: str, backend: str | None = None, window_minutes: int | None = None
+    ) -> Answer:
         if not self._graphs:
             self.refresh_schema()
         name = backend or self._pick_backend(question)
@@ -79,7 +86,15 @@ class Engine:
                 backend=name or "?",
                 reason=f"unknown backend {name!r}; have {sorted(self._graphs)}",
             )
-        final = self._graphs[name].invoke({"question": question})
+        state: dict = {"question": question}
+        window_info = None
+        if window_minutes is not None:
+            end = time.time()
+            start = end - window_minutes * 60
+            step = max(15.0, (end - start) / 120)
+            state["window"] = {"start": start, "end": end, "step": step}
+            window_info = {"minutes": window_minutes, "step_s": step}
+        final = self._graphs[name].invoke(state)
         return Answer(
             outcome=final.get("outcome", "failed"),
             backend=name,
@@ -88,6 +103,7 @@ class Engine:
             reason=final.get("reason", ""),
             schema_used=[item.name for item in final.get("schema", [])],
             attempts=len(final.get("attempts", [])) + (1 if final.get("query") else 0),
+            window=window_info,
         )
 
     def _pick_backend(self, question: str) -> str:

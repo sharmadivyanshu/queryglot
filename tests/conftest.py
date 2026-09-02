@@ -117,3 +117,20 @@ class FakeBackend:
             raise NotImplementedError("fake backend range disabled")
         self.range_calls.append((query, start, end, step))
         return self.execute(query)
+
+
+class IntrospectingBackend(FakeBackend):
+    """FakeBackend whose introspect() actually returns schema, so retrieval
+    clears the gate and the graph reaches compile (i.e. calls the LLM)."""
+
+    def introspect(self):
+        return [
+            SchemaItem(
+                name="http_server_request_duration_seconds",
+                backend="prometheus",
+                kind="metric",
+                type="histogram",
+                help="HTTP request latency",
+                labels=("route", "method", "status"),
+            )
+        ]

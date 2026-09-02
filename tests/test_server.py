@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from queryglot import __version__
 from queryglot.engine import Engine
 from queryglot.server import create_app
-from tests.conftest import FakeBackend, ScriptedLLM
+from tests.conftest import FakeBackend, IntrospectingBackend, ScriptedLLM
 
 
 def client_for(llm=None, backend=None):
@@ -150,25 +150,6 @@ def test_non_ascii_authorization_header_is_401_not_500(monkeypatch):
 class RaisingLLM:
     def complete(self, system: str, prompt: str) -> str:
         raise OSError("connection refused: LLM endpoint down")
-
-
-class IntrospectingBackend(FakeBackend):
-    """FakeBackend whose introspect() actually returns schema, so retrieval
-    clears the gate and the graph reaches compile (i.e. calls the LLM)."""
-
-    def introspect(self):
-        from queryglot.catalog import SchemaItem
-
-        return [
-            SchemaItem(
-                name="http_server_request_duration_seconds",
-                backend="prometheus",
-                kind="metric",
-                type="histogram",
-                help="HTTP request latency",
-                labels=("route", "method", "status"),
-            )
-        ]
 
 
 def test_search_engine_exception_returns_failed_outcome_not_500():
