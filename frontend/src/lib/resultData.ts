@@ -5,9 +5,24 @@
  * but this parsing is shared and tiny.
  */
 
+export interface WindowInfo {
+  minutes: number
+  step_s: number
+}
+
 interface InstantVectorSample {
   metric: Record<string, string>
   value: [number | string, string]
+}
+
+export interface MatrixSeries {
+  labels: Record<string, string>
+  points: [number, number][]
+}
+
+interface MatrixSample {
+  metric: Record<string, string>
+  values: [number | string, string][]
 }
 
 export interface VectorRow {
@@ -44,6 +59,20 @@ function isInstantVector(result: unknown): result is InstantVectorSample[] {
   )
 }
 
+function isMatrix(result: unknown): result is MatrixSample[] {
+  return (
+    Array.isArray(result) &&
+    result.every(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'metric' in item &&
+        'values' in item &&
+        Array.isArray((item as { values: unknown }).values),
+    )
+  )
+}
+
 export function formatValue(raw: string): string {
   const n = Number(raw)
   if (!Number.isFinite(n)) return raw
@@ -64,4 +93,20 @@ export function parseVector(result: unknown): VectorRow[] | null {
       }
     })
     .sort((a, b) => b.value - a.value)
+}
+
+export function parseMatrix(result: unknown): MatrixSeries[] | null {
+  if (
+    typeof result !== 'object' ||
+    result === null ||
+    (result as { resultType?: unknown }).resultType !== 'matrix'
+  ) {
+    return null
+  }
+  const inner = unwrap(result, 'matrix')
+  if (!isMatrix(inner)) return null
+  return inner.map((series) => ({
+    labels: series.metric,
+    points: series.values.map(([t, v]) => [Number(t), Number(v)] as [number, number]),
+  }))
 }

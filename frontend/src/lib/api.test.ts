@@ -31,3 +31,12 @@ describe('client.schema', () => {
     expect(response.fields[0].name).toBe('up')
   })
 })
+
+describe('client.search window_minutes', () => {
+  it('sends window_minutes when provided', async () => {
+    const fetchFn = mockFetch({ outcome: 'answered' })
+    const client = createClient({ api: '' })
+    await client.search('q', undefined, false, 30)
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body as string).window_minutes).toBe(30)
+  })
+})

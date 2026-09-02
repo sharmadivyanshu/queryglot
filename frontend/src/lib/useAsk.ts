@@ -51,7 +51,7 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function useAsk(client: Client, backend?: string): UseAskResult {
+export function useAsk(client: Client, backend?: string, windowMinutes?: number): UseAskResult {
   const [state, setState] = useState<AskState>({ kind: 'idle' })
   const requestIdRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -94,7 +94,7 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
       }
 
       client
-        .search(question, backend, opts?.fresh)
+        .search(question, backend, opts?.fresh, windowMinutes)
         .then((answer) => {
           if (requestIdRef.current !== requestId) {
             return
@@ -136,7 +136,7 @@ export function useAsk(client: Client, backend?: string): UseAskResult {
           setState({ kind: 'failed', error: message })
         })
     },
-    [client, backend, clearTimer],
+    [client, backend, clearTimer, windowMinutes],
   )
 
   return { state, ask, reset }
