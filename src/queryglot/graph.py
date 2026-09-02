@@ -45,6 +45,7 @@ class SearchState(TypedDict, total=False):
     result: object
     outcome: Literal["answered", "abstained", "failed"]
     reason: str
+    window: dict  # {"start": float, "end": float, "step": float} — execute-only
 
 
 def build_graph(
@@ -97,7 +98,16 @@ def build_graph(
         }
 
     def execute(state: SearchState) -> dict:
-        run = backend.execute(state["query"])
+        window = state.get("window")
+        if window:
+            try:
+                run = backend.execute_range(
+                    state["query"], window["start"], window["end"], window["step"]
+                )
+            except NotImplementedError:
+                run = backend.execute(state["query"])  # rangeless backend: degrade to instant
+        else:
+            run = backend.execute(state["query"])
         if run.ok:
             return {"result": run.data, "outcome": "answered"}
         return {"outcome": "failed", "reason": f"execution error: {run.error}"}

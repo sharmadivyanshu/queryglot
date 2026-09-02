@@ -68,9 +68,11 @@ class ScriptedLLM:
     def __init__(self, *completions: str):
         self.completions = list(completions)
         self.calls: list[str] = []
+        self.prompts: list[tuple[str, str]] = []
 
     def complete(self, system: str, prompt: str) -> str:
         self.calls.append(prompt)
+        self.prompts.append((system, prompt))
         if len(self.completions) > 1:
             return self.completions.pop(0)
         return self.completions[0]

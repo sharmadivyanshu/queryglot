@@ -108,3 +108,37 @@ def test_rerank_skipped_when_lexical_is_confident(catalog):
     assert final["outcome"] == "answered"
     assert len(llm.calls) == 1  # straight to compile — no rerank call
     assert "comma-separated" not in llm.calls[0]
+
+
+def test_window_routes_execution_through_execute_range(catalog):
+    backend = FakeBackend(valid={"GOOD"})
+    graph = build_graph(backend, SchemaRetriever(catalog), ScriptedLLM("GOOD"))
+    final = graph.invoke(
+        {"question": "requests by handler", "window": {"start": 100.0, "end": 1900.0, "step": 30.0}}
+    )
+    assert final["outcome"] == "answered"
+    assert backend.range_calls == [("GOOD", 100.0, 1900.0, 30.0)]
+
+
+def test_window_on_rangeless_backend_falls_back_to_instant(catalog):
+    backend = FakeBackend(valid={"GOOD"})
+    backend.supports_range = False
+    graph = build_graph(backend, SchemaRetriever(catalog), ScriptedLLM("GOOD"))
+    final = graph.invoke(
+        {"question": "requests by handler", "window": {"start": 100.0, "end": 1900.0, "step": 30.0}}
+    )
+    assert final["outcome"] == "answered"  # degraded gracefully, not failed
+
+
+def test_window_never_reaches_the_compile_prompt(catalog):
+    """Parity guard: the trained adapters saw prompts without any window text.
+    The prompt for a windowed ask must be byte-identical to an instant ask's."""
+    llm_instant, llm_windowed = ScriptedLLM("GOOD"), ScriptedLLM("GOOD")
+    backend_a, backend_b = FakeBackend(valid={"GOOD"}), FakeBackend(valid={"GOOD"})
+    build_graph(backend_a, SchemaRetriever(catalog), llm_instant).invoke(
+        {"question": "requests by handler"}
+    )
+    build_graph(backend_b, SchemaRetriever(catalog), llm_windowed).invoke(
+        {"question": "requests by handler", "window": {"start": 0.0, "end": 60.0, "step": 15.0}}
+    )
+    assert llm_instant.prompts == llm_windowed.prompts
