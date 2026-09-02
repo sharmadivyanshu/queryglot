@@ -4,7 +4,7 @@ import { createClient } from '../lib/api'
 import type { SchemaField, SearchResponse, StatusResponse } from '../lib/api'
 import { parseVector } from '../lib/resultData'
 import { useAsk } from '../lib/useAsk'
-import type { AskState } from '../lib/useAsk'
+import type { AskOptions, AskState } from '../lib/useAsk'
 import { Panel } from '../widget/Panel'
 import { BarChart } from './BarChart'
 import { TopBar } from './TopBar'
@@ -86,18 +86,25 @@ function Playground() {
   const [windowMinutes, setWindowMinutes] = useState<number | undefined>(undefined)
   const { state, ask, reset } = useAsk(client, undefined, windowMinutes)
   const lastQuestion = useRef('')
-  const askTracked = (question: string, opts?: { fresh?: boolean }) => {
+  const askTracked = (question: string, opts?: AskOptions) => {
     lastQuestion.current = question
     ask(question, opts)
   }
   const refresh = () => {
-    if (lastQuestion.current) ask(lastQuestion.current, { fresh: true })
+    if (lastQuestion.current) askTracked(lastQuestion.current, { fresh: true })
   }
   const changeWindow = (minutes: number | undefined) => {
     setWindowMinutes(minutes)
-    // Re-run the current question under the new window (spec B3) — the hook
-    // arg updates on next render, so pass through a microtask.
-    if (lastQuestion.current) setTimeout(() => ask(lastQuestion.current, { fresh: true }), 0)
+    // Re-run the current question under the new window (spec B3). `ask`'s
+    // useCallback closes over this render's `windowMinutes`, which is still
+    // the OLD value here (state updates land on the next render) — so the
+    // new window has to be threaded through explicitly as a per-call
+    // override rather than relied on via the hook's own arg. `minutes`
+    // is `undefined` for Instant, so it's passed through `?? null` — the
+    // override sentinel for "no window" (see AskOptions.windowMinutes).
+    if (lastQuestion.current) {
+      askTracked(lastQuestion.current, { fresh: true, windowMinutes: minutes ?? null })
+    }
   }
 
   // The panel header advertises ⌘K — honor it inline too: reset to idle.
