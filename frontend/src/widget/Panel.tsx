@@ -278,6 +278,8 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false, resu
 
         {state.kind === 'answered' && (() => {
           const chart = resultView ? resultView(state.answer) : null
+          const window = state.answer.window
+          const suffix = window ? ` · range last ${window.minutes} min, step ${Math.round(window.step_s)}s` : undefined
           return (
             <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 13 }}>
               {state.summary && (
@@ -288,7 +290,7 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false, resu
                   {state.summary}
                 </p>
               )}
-              <QueryBlock query={state.answer.query} />
+              <QueryBlock query={state.answer.query} suffix={suffix} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={sectionLabelStyle}>RESULT</span>

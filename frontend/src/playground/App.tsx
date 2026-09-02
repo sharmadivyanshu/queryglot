@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ThemeProvider } from '../ui/theme'
 import { createClient } from '../lib/api'
 import type { SchemaField, SearchResponse, StatusResponse } from '../lib/api'
-import { parseVector } from '../lib/resultData'
+import { parseMatrix, parseVector } from '../lib/resultData'
 import { useAsk } from '../lib/useAsk'
 import type { AskOptions, AskState } from '../lib/useAsk'
 import { Panel } from '../widget/Panel'
 import { BarChart } from './BarChart'
+import { Histogram } from './Histogram'
 import { TopBar } from './TopBar'
 import { SchemaRail } from './SchemaRail'
 import { TimeRange } from './TimeRange'
@@ -144,6 +145,10 @@ function Playground() {
   const answer = answerOf(state)
 
   const resultView = (searchResponse: SearchResponse) => {
+    const matrix = parseMatrix(searchResponse.result)
+    if (matrix && matrix.length === 1 && searchResponse.window) {
+      return <Histogram series={matrix[0]} stepSeconds={Math.round(searchResponse.window.step_s)} />
+    }
     const rows = parseVector(searchResponse.result)
     if (!rows || rows.length < 2 || !Number.isFinite(rows[0].value)) return null
     return <BarChart rows={rows} />

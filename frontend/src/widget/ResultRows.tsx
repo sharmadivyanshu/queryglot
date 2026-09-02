@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { formatValue, parseVector } from '../lib/resultData'
+import { formatValue, parseMatrix, parseVector } from '../lib/resultData'
 
 const rowLabelStyle: CSSProperties = { fontSize: 12, color: 'var(--qg-text-mut)' }
 const rowValueStyle: CSSProperties = { fontSize: '12.5px', fontWeight: 500, color: 'var(--qg-text)' }
@@ -58,6 +58,31 @@ export function ResultRows({ result: rawResult }: { result: unknown }) {
             </span>
           </div>
         ))}
+      </div>
+    )
+  }
+  const series = parseMatrix(rawResult)
+  if (series !== null && series.length > 0) {
+    const rows = series
+      .map((s) => ({
+        label: Object.values(s.labels).join(' ') || '(no labels)',
+        raw: String(s.points[s.points.length - 1]?.[1] ?? ''),
+        points: s.points.length,
+      }))
+      .sort((a, b) => Number(b.raw) - Number(a.raw))
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {rows.map((row, i) => (
+          <div key={i} className="krow" style={{ background: i % 2 === 0 ? 'var(--qg-surface2)' : 'transparent' }}>
+            <span className="mono" style={rowLabelStyle}>{row.label}</span>
+            <span className="mono" style={i === 0 && rows.length > 1 ? { ...rowValueStyle, color: 'var(--qg-accent)', fontWeight: 600 } : rowValueStyle}>
+              {formatValue(row.raw)}
+            </span>
+          </div>
+        ))}
+        <span style={{ fontSize: 11, color: 'var(--qg-text-faint)', padding: '4px 12px' }}>
+          latest of {series[0].points.length} points per series
+        </span>
       </div>
     )
   }

@@ -66,11 +66,12 @@ function highlight(query: string) {
 }
 
 /** "RAN THIS EXACT QUERY" label + validated chip + syntax-tinted mono block, from Main.dc.html. */
-export function QueryBlock({ query }: { query: string }) {
+export function QueryBlock({ query, suffix }: { query: string; suffix?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={labelStyle}>RAN THIS EXACT QUERY</span>
+        {suffix && <span style={{ fontSize: '10.5px', color: 'var(--qg-text-faint)' }}>{suffix}</span>}
         <span className="chip" style={chipStyle}>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path
