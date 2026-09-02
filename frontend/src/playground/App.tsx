@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ThemeProvider } from '../ui/theme'
 import { createClient } from '../lib/api'
 import type { SchemaField, SearchResponse, StatusResponse } from '../lib/api'
@@ -9,6 +9,7 @@ import { Panel } from '../widget/Panel'
 import { BarChart } from './BarChart'
 import { TopBar } from './TopBar'
 import { SchemaRail } from './SchemaRail'
+import { TimeRange } from './TimeRange'
 import { TracePanel } from './TracePanel'
 
 /** v1's static default list — same as the widget's. */
@@ -82,7 +83,22 @@ function answerOf(state: AskState): SearchResponse | undefined {
 
 function Playground() {
   const client = useMemo(() => createClient({ api: '' }), [])
-  const { state, ask, reset } = useAsk(client)
+  const [windowMinutes, setWindowMinutes] = useState<number | undefined>(undefined)
+  const { state, ask, reset } = useAsk(client, undefined, windowMinutes)
+  const lastQuestion = useRef('')
+  const askTracked = (question: string, opts?: { fresh?: boolean }) => {
+    lastQuestion.current = question
+    ask(question, opts)
+  }
+  const refresh = () => {
+    if (lastQuestion.current) ask(lastQuestion.current, { fresh: true })
+  }
+  const changeWindow = (minutes: number | undefined) => {
+    setWindowMinutes(minutes)
+    // Re-run the current question under the new window (spec B3) — the hook
+    // arg updates on next render, so pass through a microtask.
+    if (lastQuestion.current) setTimeout(() => ask(lastQuestion.current, { fresh: true }), 0)
+  }
 
   // The panel header advertises ⌘K — honor it inline too: reset to idle.
   useEffect(() => {
@@ -128,7 +144,9 @@ function Playground() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-qg-bg text-qg-text">
-      <TopBar status={status} unreachable={statusUnreachable} />
+      <TopBar status={status} unreachable={statusUnreachable}>
+        <TimeRange windowMinutes={windowMinutes} onChange={changeWindow} onRefresh={refresh} />
+      </TopBar>
       <div className="flex min-h-0 flex-1">
         <SchemaRail
           fields={schemaFields}
@@ -146,10 +164,10 @@ function Playground() {
               Every answer shows the exact validated query it ran. Off-schema questions get an honest refusal.
             </p>
           </div>
-          <AskBar onAsk={ask} seed={seed} />
+          <AskBar onAsk={askTracked} seed={seed} />
           <div className="flex min-h-0 flex-1 gap-[18px]">
             <div className="min-w-0 flex-1">
-              <Panel state={state} onAsk={ask} onClose={reset} suggestions={SUGGESTIONS} inline resultView={resultView} />
+              <Panel state={state} onAsk={askTracked} onClose={reset} suggestions={SUGGESTIONS} inline resultView={resultView} />
             </div>
             <TracePanel answer={answer} />
           </div>
