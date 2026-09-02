@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { TimeRange } from './TimeRange'
 
@@ -27,5 +28,20 @@ describe('TimeRange', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     expect(onRefresh).toHaveBeenCalled()
+  })
+
+  it('arrow keys move focus through menu items and enter selects the focused preset', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<TimeRange windowMinutes={undefined} onChange={onChange} onRefresh={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Instant/ }))
+    // menu opens focused on the active preset ("Instant", index 0)
+    expect(screen.getByRole('menuitem', { name: 'Instant' })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('menuitem', { name: 'Last 5 minutes' })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('menuitem', { name: 'Last 15 minutes' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(onChange).toHaveBeenCalledWith(15)
   })
 })

@@ -103,7 +103,7 @@ class Engine:
             reason=final.get("reason", ""),
             schema_used=[item.name for item in final.get("schema", [])],
             attempts=len(final.get("attempts", [])) + (1 if final.get("query") else 0),
-            window=window_info,
+            window=window_info if final.get("ranged") else None,
         )
 
     def _pick_backend(self, question: str) -> str:

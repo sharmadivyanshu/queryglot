@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export const WINDOW_PRESETS = [
+const WINDOW_PRESETS = [
   { minutes: undefined, label: 'Instant' },
   { minutes: 5, label: 'Last 5 minutes' },
   { minutes: 15, label: 'Last 15 minutes' },
@@ -38,12 +38,30 @@ export interface TimeRangeProps {
 export function TimeRange({ windowMinutes, onChange, onRefresh }: TimeRangeProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
   const active = WINDOW_PRESETS.find((preset) => preset.minutes === windowMinutes) ?? WINDOW_PRESETS[0]
 
   useEffect(() => {
     if (!open) return
+    const activeIndex = WINDOW_PRESETS.findIndex((preset) => preset.minutes === windowMinutes)
+    itemRefs.current[activeIndex >= 0 ? activeIndex : 0]?.focus()
+  }, [open, windowMinutes])
+
+  useEffect(() => {
+    if (!open) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        setOpen(false)
+        return
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        const count = WINDOW_PRESETS.length
+        const current = itemRefs.current.findIndex((el) => el === document.activeElement)
+        const delta = event.key === 'ArrowDown' ? 1 : -1
+        const next = (current + delta + count) % count
+        itemRefs.current[next]?.focus()
+      }
     }
     const onClick = (event: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
@@ -73,8 +91,9 @@ export function TimeRange({ windowMinutes, onChange, onRefresh }: TimeRangeProps
       {open && (
         <div role="menu"
           className="absolute right-0 top-[calc(100%+6px)] z-20 flex min-w-[180px] flex-col rounded-[10px] border border-qg-border bg-qg-surface p-1 shadow-qg">
-          {WINDOW_PRESETS.map((preset) => (
+          {WINDOW_PRESETS.map((preset, index) => (
             <button key={preset.label} role="menuitem" type="button"
+              ref={(el) => { itemRefs.current[index] = el }}
               onClick={() => { onChange(preset.minutes); setOpen(false) }}
               className={`cursor-pointer rounded-lg px-3 py-2 text-left text-[12.5px] ${preset.minutes === windowMinutes ? 'bg-qg-surface2 text-qg-text' : 'text-qg-text-mut hover:bg-qg-surface2'}`}>
               {preset.label}

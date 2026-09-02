@@ -118,6 +118,7 @@ def test_window_routes_execution_through_execute_range(catalog):
     )
     assert final["outcome"] == "answered"
     assert backend.range_calls == [("GOOD", 100.0, 1900.0, 30.0)]
+    assert final["ranged"] is True
 
 
 def test_window_on_rangeless_backend_falls_back_to_instant(catalog):
@@ -128,6 +129,7 @@ def test_window_on_rangeless_backend_falls_back_to_instant(catalog):
         {"question": "requests by handler", "window": {"start": 100.0, "end": 1900.0, "step": 30.0}}
     )
     assert final["outcome"] == "answered"  # degraded gracefully, not failed
+    assert not final.get("ranged")  # the range path never actually ran
 
 
 def test_window_never_reaches_the_compile_prompt(catalog):

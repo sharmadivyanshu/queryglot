@@ -26,3 +26,15 @@ def test_engine_without_window_omits_the_field_and_runs_instant():
     answer = engine.search("p95 latency by route")
     assert backend.range_calls == []
     assert "window" not in answer.as_dict() or answer.as_dict().get("window") is None
+
+
+def test_engine_windowed_search_on_rangeless_backend_omits_window():
+    """The range path silently falls back to instant execute() — the engine
+    must not claim a window ran when it didn't (F1)."""
+    backend = IntrospectingBackend(valid={"GOOD"})
+    backend.supports_range = False
+    engine = Engine([backend], llm=ScriptedLLM("GOOD"))
+    answer = engine.search("p95 latency by route", window_minutes=30)
+    assert answer.outcome == "answered"
+    assert backend.range_calls == []
+    assert "window" not in answer.as_dict()
