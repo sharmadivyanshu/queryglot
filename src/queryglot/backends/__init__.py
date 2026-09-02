@@ -34,9 +34,7 @@ class Backend(Protocol):
     def validate(self, query: str) -> Validation: ...
     def execute(self, query: str) -> Execution: ...
 
-    def execute_range(
-        self, query: str, start: float, end: float, step: float
-    ) -> Execution:
+    def execute_range(self, query: str, start: float, end: float, step: float) -> Execution:
         """Evaluate `query` over [start, end] epoch seconds at `step`-second
         resolution. Backends with no range concept raise NotImplementedError;
         the engine falls back to execute()."""

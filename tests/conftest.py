@@ -111,8 +111,6 @@ class FakeBackend:
         return Execution(ok=False, error="boom")
 
     def execute_range(self, query: str, start: float, end: float, step: float):
-        from queryglot.backends import Execution
-
         if not self.supports_range:
             raise NotImplementedError("fake backend range disabled")
         self.range_calls.append((query, start, end, step))
