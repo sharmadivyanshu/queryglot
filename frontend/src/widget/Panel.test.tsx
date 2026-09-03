@@ -125,7 +125,7 @@ test('vector rows render sorted descending with the max first', () => {
   expect(rows[2]).toContain('/small')
 })
 
-it('renders resultView output with a chart/rows toggle, and rows when toggled', () => {
+test('renders resultView output with a chart/rows toggle, and rows when toggled', () => {
   const answer = answeredResponse()  // reuse the file's existing answered fixture builder
   render(
     <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
@@ -136,7 +136,7 @@ it('renders resultView output with a chart/rows toggle, and rows when toggled', 
   expect(screen.queryByTestId('custom-chart')).not.toBeInTheDocument()
 })
 
-it('shows no toggle and plain rows when resultView is absent or returns null', () => {
+test('shows no toggle and plain rows when resultView is absent or returns null', () => {
   const answer = answeredResponse()
   render(
     <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}
@@ -145,7 +145,7 @@ it('shows no toggle and plain rows when resultView is absent or returns null', (
   expect(screen.queryByRole('button', { name: 'chart' })).not.toBeInTheDocument()
 })
 
-it('re-runs the question fresh from the header refresh button', () => {
+test('re-runs the question fresh from the header refresh button', () => {
   const onAsk = vi.fn()
   // Panel keeps the asked question in local state: submit a suggestion while
   // idle, then rerender the same instance in the answered state.
@@ -160,18 +160,18 @@ it('re-runs the question fresh from the header refresh button', () => {
   expect(onAsk).toHaveBeenLastCalledWith('slowest routes today', { fresh: true })
 })
 
-it('hides the refresh button when no question was asked through the panel', () => {
+test('hides the refresh button when no question was asked through the panel', () => {
   render(<Panel state={{ kind: 'answered', answer: answeredResponse() }} onAsk={noop} onClose={noop} suggestions={[]} />)
   expect(screen.queryByRole('button', { name: 're-run this question' })).not.toBeInTheDocument()
 })
 
-it('shows cache age on cached answers', () => {
+test('shows cache age on cached answers', () => {
   const answer = { ...answeredResponse(), cached: true, cache_age_s: 42 }
   render(<Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]} />)
   expect(screen.getByText(/cached 42s ago/)).toBeInTheDocument()
 })
 
-it('preserves the chart/rows toggle selection when a summary arrives', () => {
+test('preserves the chart/rows toggle selection when a summary arrives', () => {
   const answer = answeredResponse()
   const { rerender } = render(
     <Panel state={{ kind: 'answered', answer }} onAsk={noop} onClose={noop} suggestions={[]}

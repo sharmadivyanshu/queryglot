@@ -14,11 +14,13 @@ function timeLabel(epochSeconds: number): string {
  * doesn't render thousands of sub-pixel bars.
  */
 export function Histogram({ series, stepSeconds }: { series: MatrixSeries; stepSeconds: number }) {
-  const points = series.points.length > 120
-    ? series.points.filter((_, i) => i % Math.ceil(series.points.length / 120) === 0)
-    : series.points
+  const stride = series.points.length > 120 ? Math.ceil(series.points.length / 120) : 1
+  const points = stride > 1 ? series.points.filter((_, i) => i % stride === 0) : series.points
   const [hover, setHover] = useState<number | null>(null)
-  const max = Math.max(...points.map(([, value]) => value), 0)
+  // NaN samples (0/0 in a rate) and all-negative series would corrupt a naive
+  // max(): compute the peak from finite values only, like the serve layer does.
+  const finite = points.map(([, value]) => value).filter(Number.isFinite)
+  const max = finite.length > 0 ? Math.max(...finite) : 0
   const peakIndex = points.findIndex(([, value]) => value === max)
   const first = points[0]?.[0] ?? 0
   const last = points[points.length - 1]?.[0] ?? 0
@@ -38,7 +40,7 @@ export function Histogram({ series, stepSeconds }: { series: MatrixSeries; stepS
           <span key={i} data-testid="qg-hist-bar"
             onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
             className="min-w-[3px] flex-1 rounded-t-[3px]"
-            style={{ height: `${max > 0 ? Math.max((value / max) * 100, 2) : 2}%`,
+            style={{ height: `${max > 0 && Number.isFinite(value) ? Math.max((value / max) * 100, 2) : 2}%`,
               background: i === peakIndex ? 'var(--qg-bar)' : 'var(--qg-bar-soft)' }} />
         ))}
       </div>
@@ -46,7 +48,7 @@ export function Histogram({ series, stepSeconds }: { series: MatrixSeries; stepS
         <span>{timeLabel(first)}</span><span>{timeLabel(mid)}</span><span>{timeLabel(last)}</span>
       </div>
       <span className="text-[10.5px] text-qg-text-faint">
-        interval: {stepSeconds} s · {points.length} points · peak highlighted
+        interval: {stepSeconds * stride} s · {points.length} points · peak highlighted
       </span>
     </div>
   )

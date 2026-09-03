@@ -69,7 +69,11 @@ export function ResultRows({ result: rawResult }: { result: unknown }) {
         raw: String(s.points[s.points.length - 1]?.[1] ?? ''),
         points: s.points.length,
       }))
-      .sort((a, b) => Number(b.raw) - Number(a.raw))
+      .sort((a, b) => {
+        const av = Number(a.raw)
+        const bv = Number(b.raw)
+        return (Number.isFinite(bv) ? bv : Number.NEGATIVE_INFINITY) - (Number.isFinite(av) ? av : Number.NEGATIVE_INFINITY)
+      })
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {rows.map((row, i) => (
@@ -81,7 +85,7 @@ export function ResultRows({ result: rawResult }: { result: unknown }) {
           </div>
         ))}
         <span style={{ fontSize: 11, color: 'var(--qg-text-faint)', padding: '4px 12px' }}>
-          latest of {series[0].points.length} points per series
+          latest of up to {Math.max(...series.map((s) => s.points.length))} points per series
         </span>
       </div>
     )

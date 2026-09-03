@@ -12,5 +12,5 @@ test('renders a matrix as latest-value rows with a points note', () => {
   render(<ResultRows result={matrix} />)
   expect(screen.getByText('/a')).toBeInTheDocument()
   expect(screen.getByText('5')).toBeInTheDocument() // latest, not max
-  expect(screen.getByText(/latest of 2 points/)).toBeInTheDocument()
+  expect(screen.getByText(/latest of up to 2 points/)).toBeInTheDocument()
 })

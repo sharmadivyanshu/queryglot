@@ -214,7 +214,7 @@ export function Panel({ state, onAsk, onClose, suggestions, inline = false, resu
           <SearchIcon />
           <span style={{ fontSize: 14, color: 'var(--qg-text)', flexGrow: 1 }}>{question}</span>
           {state.kind === 'answered' && question && (
-            <button type="button" aria-label="re-run this question"
+            <button type="button" aria-label="re-run this question" title="re-run"
               onClick={() => onAsk(question, { fresh: true })}
               style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--qg-border)',
                 background: 'var(--qg-surface2)', color: 'var(--qg-text-mut)', cursor: 'pointer',
