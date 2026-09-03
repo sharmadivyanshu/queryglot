@@ -71,6 +71,17 @@ queryglot-serve --prometheus http://localhost:9090
 `queryglot-serve` also serves the query playground at `/` and the embeddable
 ask-widget bundle at `/widget.js` — see "Embed the ask-widget" below.
 
+The playground is a small Discover-style console: your schema in a filterable
+rail (type badges, prefix groups, and the items the last answer actually
+used), a time-range picker whose window runs as a real `query_range` — the
+window comes from the picker, never the model, so the compile prompt stays
+byte-stable — and results as a bar chart or histogram with the raw rows one
+toggle away. Answered questions also get a one-sentence conversational
+summary, grounded strictly on the returned data (never computed, never
+invented — an empty summary beats a wrong one), and repeat questions are
+served from a short answer cache with an honest `cached Ns ago` tag and a
+fresh re-run button.
+
 Environment variables (serve only):
 - `QUERYGLOT_SERVE_TOKEN` — bearer token for `/api/*` endpoints. Empty = open (intended for localhost/demo).
 - `QUERYGLOT_CORS_ORIGINS` — comma-separated allowed origins for embedding.
@@ -117,14 +128,21 @@ integration suite against a real Prometheus and petstore on every push.
 - [x] Prometheus + Elasticsearch backends (introspect / validate / execute)
 - [x] BM25 + synonym schema retrieval, exact-name boosting
 - [x] compile -> validate -> repair -> execute LangGraph with abstention
-- [x] MCP server + CLI; 89 tests incl. live-Prometheus and live-petstore
-      integration; CI
+- [x] MCP server + CLI; 141 backend tests (live-Prometheus and
+      live-petstore integration included, always exercised in CI) plus 82
+      frontend tests; CI gates on all of it
 - [x] Verified NL->PromQL dataset generator (parse+execute gated, metric-disjoint splits)
 - [x] Bake-off complete — RAG 8/10, FT-only 3/10, FT+RAG 9/10 on the same
       golden set; full analysis in `finetune/README.md`, build history and
       bugs in `DESIGN_NOTES.md`
 - [x] OpenAPI backend — read-only, GET-only by construction; validated
       against the spec's own contract; petstore-verified in CI
+- [x] HTTP serve layer: answer cache, grounded conversational summaries,
+      structured schema API, bearer auth — engine outcomes are always 200
+      payloads (an abstention is an answer, not an error)
+- [x] Embeddable ask-widget (~15 KB gz, Shadow-DOM, one script tag) +
+      Discover-style playground: schema rail, time-range windows via
+      `query_range`, histogram/bar-chart results with rows one toggle away
 - [ ] Loki (LogQL) backend; Datadog connector
 
 ## Where this is going: apps that agents can actually use
