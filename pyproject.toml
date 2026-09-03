@@ -2,9 +2,10 @@
 name = "queryglot"
 version = "0.1.0"
 description = "One question, many query languages. Schema-aware natural-language search over your observability stack, as an MCP server."
-authors = ["Divyanshu Sharma <divyanshu.sharma-claude@docyt.com>"]
+authors = ["Divyanshu Sharma <sharmadivyanshu24@gmail.com>"]
 readme = "README.md"
 license = "MIT"
+repository = "https://github.com/sharmadivyanshu/queryglot"
 keywords = ["mcp", "prometheus", "elasticsearch", "promql", "observability", "rag", "llm"]
 packages = [{ include = "queryglot", from = "src" }]
 include = [{ path = "src/queryglot/_static/**/*", format = ["sdist", "wheel"] }]
