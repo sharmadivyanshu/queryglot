@@ -439,6 +439,63 @@ unchanged at 9/10; refusals still ~2ms.
 
 ---
 
+### 18. The re-run that quietly used the old time window
+
+The Discover-phase time picker re-runs the current question when the preset
+changes. First implementation: `setState(newWindow)` then
+`setTimeout(() => ask(question, {fresh: true}), 0)` — delay the re-ask one
+tick so the hook "sees" the new window. It never can: the timeout closes over
+THIS render's `ask`, a `useCallback` whose body already baked in the old
+window. The timer changes when the stale function runs, not which function
+runs. Every re-run silently queried the previous window.
+
+**Fix:** no timer. `ask()` accepts an explicit override
+(`{windowMinutes: number | null}`, null meaning Instant) and the handler
+passes the new value directly — data flows through arguments, not through
+"wait for React".
+
+**Lesson:** deferring a call does not refresh its closure. If a handler needs
+post-update state, pass the value explicitly; any `setTimeout(0)` around
+setState is a stale-closure bug wearing a trench coat. Caught only because
+the reviewer was told to trace the closure chain — no test covered it,
+which was the second finding.
+
+### 19. The regression test that passed with the fix reverted
+
+Prometheus emits literal `"NaN"` samples (any `0/0` rate). `max(values,
+key=...)` with a NaN present is order-dependent — NaN comparisons are always
+False, so NaN wins only when it is the FIRST element, the unchallenged
+initial candidate. The fix (drop non-finite points) was correct; the test
+pinning it placed NaN second, where the bug cannot fire. Reverting the fix
+left the test green — a false pin proving nothing.
+
+**Fix:** NaN moved to position 0; the fix report now must show the
+revert-proof both ways (guard removed → test fails; restored → passes).
+
+**Lesson:** a regression test is only as good as its ability to fail. For
+order-dependent bugs, the fixture must sit in the one arrangement that
+triggers the bug — and "I reverted the fix and watched the test fail" is the
+only receipt worth accepting.
+
+### 20. The trace that would have lied about query_range
+
+`Engine.search` attached window metadata the moment a window was requested;
+the graph's execute node silently falls back to instant `execute()` when a
+backend raises NotImplementedError. On a rangeless backend the UI would
+read "query_range · 30 min — the range was applied by the engine": false, in
+the product whose entire pitch is trace honesty. Unreachable in today's
+Prometheus-only deploys — which is exactly why no test caught it.
+
+**Fix:** the execute node reports `ranged: true` only from the actual
+`execute_range` success path; the engine echoes the window only when that
+flag came back.
+
+**Lesson:** report what RAN, not what was requested. Any honesty claim in
+the UI must be wired to the code path that did the work, or a fallback
+turns the trust feature into the lie.
+
+---
+
 ## Questions to be able to answer
 
 If you can answer these without notes, you own this code.
